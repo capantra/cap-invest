@@ -1,0 +1,144 @@
+<% layout("layouts/main") %>
+
+<div class="page-header">
+  <div>
+    <h1 style="margin:0;">Campaign</h1>
+    <p class="muted" style="margin:6px 0 0;">Delivery progress and recipient status.</p>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns: 1.2fr 1fr; gap: 14px;">
+  <div class="panel">
+    <h3 style="margin-top:0;">Progress</h3>
+
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div class="muted small" style="margin-top:8px;">
+      <span id="progressPct"><%= stats.pct %></span>% •
+      <span id="progressDone"><%= stats.done %></span>/<span id="progressTotal"><%= stats.total %></span> processed
+    </div>
+
+    <div class="pill-row" style="margin-top:12px;">
+      <span class="pill">Queued: <strong id="cQueued"><%= (stats.counts.QUEUED || 0) %></strong></span>
+      <span class="pill">Sent: <strong id="cSent"><%= (stats.counts.SENT || 0) %></strong></span>
+      <span class="pill pill-warn">Bounced: <strong id="cBounced"><%= (stats.counts.BOUNCED || 0) %></strong></span>
+      <span class="pill pill-warn">Complaints: <strong id="cComplained"><%= (stats.counts.COMPLAINED || 0) %></strong></span>
+      <span class="pill">Failed: <strong id="cFailed"><%= (stats.counts.FAILED || 0) %></strong></span>
+    </div>
+
+    <hr class="hr" />
+
+    <div class="muted small">
+      This page auto-refreshes while the campaign is processing.
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin-top:0;">Details</h3>
+    <div class="kv">
+      <div class="k">Subject</div>
+      <div class="v"><%= campaign.subject || "(no subject)" %></div>
+
+      <div class="k">Audience</div>
+      <div class="v"><%= campaign.audienceMode %></div>
+
+      <div class="k">Created</div>
+      <div class="v"><%= new Date(campaign.createdAt).toLocaleString() %></div>
+
+      <% if (campaign.sentAt) { %>
+        <div class="k">Completed</div>
+        <div class="v"><%= new Date(campaign.sentAt).toLocaleString() %></div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<div class="panel" style="margin-top: 14px;">
+  <h3 style="margin-top:0;">Recent recipients (latest 200)</h3>
+
+  <% if (!campaign.recipients || !campaign.recipients.length) { %>
+    <p class="muted">No recipients found.</p>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Status</th>
+            <th>Sent</th>
+            <th>Error</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% campaign.recipients.forEach(r => { %>
+            <tr>
+              <td><%= r.email %></td>
+              <td>
+                <span class="pill <%= (r.status === "BOUNCED" || r.status === "COMPLAINED") ? "pill-warn" : "" %>">
+                  <%= r.status %>
+                </span>
+              </td>
+              <td class="muted"><%= r.sentAt ? new Date(r.sentAt).toLocaleString() : "—" %></td>
+              <td class="muted"><%= r.error ? r.error : "—" %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+
+<script>
+  (function () {
+    const campaignId = "<%= campaign.id %>";
+
+    const bar = document.getElementById("progressBar");
+    const pct = document.getElementById("progressPct");
+    const done = document.getElementById("progressDone");
+    const total = document.getElementById("progressTotal");
+
+    const cQueued = document.getElementById("cQueued");
+    const cSent = document.getElementById("cSent");
+    const cBounced = document.getElementById("cBounced");
+    const cComplained = document.getElementById("cComplained");
+    const cFailed = document.getElementById("cFailed");
+
+    function setBar(p) {
+      bar.style.width = String(p || 0) + "%";
+    }
+
+    // Set initial width safely without inline `%`
+    setBar(<%= stats.pct %>);
+
+    async function tick() {
+      try {
+        const res = await fetch(`/app/campaigns/${campaignId}/progress`, {
+          headers: { "Accept": "application/json" }
+        });
+        if (!res.ok) return;
+
+        const data = await res.json();
+
+        setBar(data.pct || 0);
+        pct.textContent = String(data.pct || 0);
+        done.textContent = String(data.done || 0);
+        total.textContent = String(data.total || 0);
+
+        const counts = data.counts || {};
+        cQueued.textContent = String(counts.QUEUED || 0);
+        cSent.textContent = String(counts.SENT || 0);
+        cBounced.textContent = String(counts.BOUNCED || 0);
+        cComplained.textContent = String(counts.COMPLAINED || 0);
+        cFailed.textContent = String(counts.FAILED || 0);
+
+        if ((data.total || 0) > 0 && (data.done || 0) >= (data.total || 0)) return;
+      } catch (e) {}
+
+      setTimeout(tick, 2000);
+    }
+
+    setTimeout(tick, 1200);
+  })();
+</script>

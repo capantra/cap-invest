@@ -1,0 +1,271 @@
+<% layout("layouts/main") %>
+
+<a class="btn btn-secondary" href="/admin/investors">← Back</a>
+
+<div class="panel" style="margin-top: 12px;">
+  <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;">
+    <div>
+      <h1 style="margin:0;">Edit <%= user.role === "INVESTOR" ? "Investor" : "Pre-investor" %></h1>
+      <p class="muted" style="margin-top:6px;">Update account details and, if an investor, shareholding profile.</p>
+    </div>
+
+    <div class="muted small">
+      <div><strong>Login:</strong> <%= user.email %></div>
+      <div><strong>Role:</strong> <%= user.role %></div>
+    </div>
+  </div>
+
+  <form method="post" action="/admin/investors/<%= user.id %>" style="margin-top: 14px;">
+    <h3 style="margin:0 0 10px;">Account</h3>
+
+    <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
+      <div>
+        <label>Contact first name (required) <span class="muted small">— becomes account name</span></label>
+        <input class="input" type="text" name="contactFirstName" required value="<%= (shareholding && shareholding.contactFirstName) ? shareholding.contactFirstName : (user.name || "") %>" />
+      </div>
+
+      <div>
+        <label>Status</label>
+        <select class="input" name="isActive">
+          <option value="true" <%= user.isActive ? "selected" : "" %>>Active</option>
+          <option value="false" <%= !user.isActive ? "selected" : "" %>>Inactive</option>
+        </select>
+      </div>
+    </div>
+
+    <% if (user.role === "PREINVESTOR") { %>
+      <hr style="border:none; border-top:1px solid rgba(0,0,0,0.08); margin: 16px 0;" />
+      <h3 style="margin:0 0 10px;">Pre-investor notes</h3>
+
+      <div class="grid" style="grid-template-columns: 1fr; gap: 14px;">
+        <div>
+          <label>Quick status</label>
+          <select class="input" name="preInvestorInstrument">
+            <option value="NONE" <%= user.preInvestorInstrument === "NONE" ? "selected" : "" %>>Standard (no instrument)</option>
+            <option value="SAFE" <%= user.preInvestorInstrument === "SAFE" ? "selected" : "" %>>SAFE</option>
+            <option value="NOTE" <%= user.preInvestorInstrument === "NOTE" ? "selected" : "" %>>Convertible Note</option>
+          </select>
+          <div class="muted small" style="margin-top:6px;">This is a quick filter flag. The instrument register below is the source of truth.</div>
+        </div>
+        <div>
+          <label>Internal notes (admin only)</label>
+          <input class="input" type="text" name="preInvestorNotes" value="<%= user.preInvestorNotes || "" %>" placeholder="Private notes..." />
+        </div>
+      </div>
+
+      <hr style="border:none; border-top:1px solid rgba(0,0,0,0.08); margin: 16px 0;" />
+      <h3 style="margin:0 0 10px;">Instruments (SAFE / Note)</h3>
+
+      <div class="muted small" style="margin-bottom:10px;">
+        Add instruments here. Reference IDs are generated automatically (SAFE-YYYY-### / NOTE-YYYY-###).
+      </div>
+
+      <!-- Add instrument -->
+      <form method="post" action="/admin/investors/<%= user.id %>/instruments" style="margin:0;">
+        <div class="grid" style="grid-template-columns: 160px 200px 200px 160px 200px; gap: 10px; align-items:end;">
+          <div>
+            <label>Type</label>
+            <select class="input" name="type">
+              <option value="SAFE" selected>SAFE</option>
+              <option value="NOTE">NOTE</option>
+            </select>
+          </div>
+          <div>
+            <label>Signed date</label>
+            <input class="input" type="date" name="signedAt" required />
+          </div>
+          <div>
+            <label>Purchase amount (AUD)</label>
+            <input class="input" type="number" name="purchaseAmount" min="0" step="0.01" required />
+          </div>
+          <div>
+            <label>Discount %</label>
+            <input class="input" type="number" name="discountPercent" min="0" max="100" step="1" placeholder="20" />
+          </div>
+          <div>
+            <label>Status</label>
+            <select class="input" name="status">
+              <option value="OUTSTANDING" selected>OUTSTANDING</option>
+              <option value="CONVERTED">CONVERTED</option>
+              <option value="CANCELLED">CANCELLED</option>
+            </select>
+          </div>
+          <div style="grid-column: 1 / -1;">
+            <label>Notes (optional)</label>
+            <input class="input" type="text" name="notes" placeholder="E.g. Discount-only SAFE (F&F)" />
+          </div>
+          <div style="grid-column: 1 / -1; display:flex; justify-content:flex-end;">
+            <button class="btn btn-secondary btn-sm" type="submit">Add Instrument</button>
+          </div>
+        </div>
+      </form>
+
+      <!-- List instruments -->
+      <% if (instruments && instruments.length) { %>
+        <div class="invTableWrap" style="margin-top:14px;">
+          <table class="invTable" style="min-width: 980px;">
+            <thead>
+              <tr>
+                <th>Reference</th>
+                <th>Type</th>
+                <th>Signed</th>
+                <th>Amount</th>
+                <th>Discount</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <% instruments.forEach(inst => { %>
+                <tr>
+                  <td><strong><%= inst.instrumentRef %></strong></td>
+                  <td><span class="pill"><%= inst.type %></span></td>
+                  <td><%= new Date(inst.signedAt).toLocaleDateString("en-AU") %></td>
+                  <td>
+                    <% const amt = (inst.purchaseAmountCents || 0) / 100; %>
+                    $<%= amt.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %>
+                  </td>
+                  <td><%= (inst.discountPercent === null || typeof inst.discountPercent === "undefined") ? "-" : (inst.discountPercent + "%") %></td>
+                  <td>
+                    <span class="pill <%= inst.status === "CONVERTED" ? "pill-ok" : (inst.status === "CANCELLED" ? "pill-warn" : "") %>"><%= inst.status %></span>
+                  </td>
+                  <td style="text-align:right; white-space:nowrap;">
+                    <form method="post" action="/admin/instruments/<%= inst.id %>/status" style="display:inline;">
+                      <input type="hidden" name="status" value="OUTSTANDING" />
+                      <button class="btn btn-secondary btn-sm" type="submit">Outstanding</button>
+                    </form>
+                    <form method="post" action="/admin/instruments/<%= inst.id %>/status" style="display:inline; margin-left:6px;">
+                      <input type="hidden" name="status" value="CONVERTED" />
+                      <button class="btn btn-secondary btn-sm" type="submit">Converted</button>
+                    </form>
+                    <form method="post" action="/admin/instruments/<%= inst.id %>/status" style="display:inline; margin-left:6px;">
+                      <input type="hidden" name="status" value="CANCELLED" />
+                      <button class="btn btn-danger btn-sm" type="submit">Cancel</button>
+                    </form>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <p class="muted" style="margin-top:10px;">No instruments recorded yet.</p>
+      <% } %>
+    <% } %>
+
+    <% if (user.role === "INVESTOR") { %>
+      <hr style="border:none; border-top:1px solid rgba(0,0,0,0.08); margin: 16px 0;" />
+
+      <h3 style="margin:0 0 10px;">Contact</h3>
+
+      <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
+        <div>
+          <label>Contact email</label>
+          <input class="input" type="email" name="contactEmail" value="<%= shareholding ? (shareholding.contactEmail || "") : "" %>" />
+          <div class="muted small" style="margin-top:6px;">Login email remains: <strong><%= user.email %></strong></div>
+        </div>
+
+        <div>
+          <label>Contact phone</label>
+          <input class="input" type="text" name="contactPhone" value="<%= shareholding ? (shareholding.contactPhone || "") : "" %>" />
+        </div>
+
+        <div>
+          <label>Contact last name</label>
+          <input class="input" type="text" name="contactLastName" value="<%= shareholding ? (shareholding.contactLastName || "") : "" %>" />
+        </div>
+      </div>
+
+      <hr style="border:none; border-top:1px solid rgba(0,0,0,0.08); margin: 16px 0;" />
+
+      <h3 style="margin:0 0 10px;">Shareholding</h3>
+
+      <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
+        <div>
+          <label>Shareholding type</label>
+          <select class="input" name="shareholdingType" required>
+            <option value="INDIVIDUAL" <%= shareholding && shareholding.shareholdingType === "INDIVIDUAL" ? "selected" : "" %>>Individual</option>
+            <option value="BUSINESS" <%= shareholding && shareholding.shareholdingType === "BUSINESS" ? "selected" : "" %>>Business</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Business name (if Business)</label>
+          <input class="input" type="text" name="businessName" value="<%= shareholding ? (shareholding.businessName || "") : "" %>" />
+        </div>
+
+        <div>
+          <label>Total shares</label>
+          <input class="input" type="number" name="sharesTotal" min="0" step="1"
+            value="<%= shareholding ? (shareholding.sharesTotal || 0) : 0 %>" required />
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 120px; gap: 10px;">
+          <div>
+            <label>Price per share</label>
+            <input class="input" type="text" name="pricePerShare"
+              value="<%= shareholding ? String(shareholding.pricePerShare || "0") : "0" %>" required />
+          </div>
+          <div>
+            <label>Currency</label>
+            <input class="input" type="text" name="currency" maxlength="3"
+              value="<%= shareholding ? (shareholding.currency || "AUD") : "AUD" %>" required />
+          </div>
+        </div>
+
+        <div>
+          <label>Unpaid per share (optional)</label>
+          <input class="input" type="text" name="unpaidPerShare"
+            value="<%= shareholding && shareholding.unpaidPerShare ? String(shareholding.unpaidPerShare) : "" %>" />
+        </div>
+      </div>
+
+      <hr style="border:none; border-top:1px solid rgba(0,0,0,0.08); margin: 16px 0;" />
+
+      <h3 style="margin:0 0 10px;">Address</h3>
+
+      <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
+        <div style="grid-column: 1 / -1;">
+          <label>Address line 1</label>
+          <input class="input" type="text" name="addressLine1" required
+            value="<%= shareholding ? (shareholding.addressLine1 || "") : "" %>" />
+        </div>
+
+        <div style="grid-column: 1 / -1;">
+          <label>Address line 2</label>
+          <input class="input" type="text" name="addressLine2"
+            value="<%= shareholding ? (shareholding.addressLine2 || "") : "" %>" />
+        </div>
+
+        <div>
+          <label>Suburb / City</label>
+          <input class="input" type="text" name="suburbOrCity" required
+            value="<%= shareholding ? (shareholding.suburbOrCity || "") : "" %>" />
+        </div>
+
+        <div>
+          <label>State / Region</label>
+          <input class="input" type="text" name="stateOrRegion"
+            value="<%= shareholding ? (shareholding.stateOrRegion || "") : "" %>" />
+        </div>
+
+        <div>
+          <label>Postcode</label>
+          <input class="input" type="text" name="postcode"
+            value="<%= shareholding ? (shareholding.postcode || "") : "" %>" />
+        </div>
+
+        <div>
+          <label>Country</label>
+          <input class="input" type="text" name="country" maxlength="2" required
+            value="<%= shareholding ? (shareholding.country || "AU") : "AU" %>" />
+        </div>
+      </div>
+    <% } %>
+
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top: 16px; flex-wrap:wrap;">
+      <a class="btn btn-secondary" href="/admin/investors">Cancel</a>
+      <button class="btn btn-primary" type="submit">Save changes</button>
+    </div>
+  </form>
+</div>

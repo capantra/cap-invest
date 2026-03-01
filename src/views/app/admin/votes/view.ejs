@@ -1,0 +1,134 @@
+<% layout("layouts/main") %>
+
+<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+  <div>
+    <h1 style="margin:0;"><%= voteRequest.title %></h1>
+    <div class="muted" style="margin-top:6px;">
+      Status: <%= voteRequest.status %>
+      <% if (voteRequest.closesAt) { %>
+        • Closes <%= new Date(voteRequest.closesAt).toLocaleString() %>
+      <% } %>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <a class="btn btn-secondary" href="/admin/votes">← Voting</a>
+    <% if (voteRequest.status === "OPEN") { %>
+      <form method="post" action="/admin/votes/<%= voteRequest.id %>/close" style="display:inline;">
+        <button class="btn btn-primary" type="submit">Close voting</button>
+      </form>
+    <% } %>
+  </div>
+</div>
+
+<div class="panel" style="margin-top:14px;">
+  <h3 style="margin:0;">Vote split</h3>
+  <div class="muted" style="margin-top:6px;">Percent of responses (not total eligible).</div>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;">
+    <div class="pill pill-ok">For: <%= votePct.for %>% (<%= voteCounts.for %>)</div>
+    <div class="pill pill-warn">Against: <%= votePct.against %>% (<%= voteCounts.against %>)</div>
+    <div class="pill">Abstain: <%= votePct.abstain %>% (<%= voteCounts.abstain %>)</div>
+  </div>
+</div>
+
+<div class="panel" style="margin-top:14px;">
+  <% if (voteRequest.description) { %>
+    <p style="white-space:pre-wrap;"><%= voteRequest.description %></p>
+  <% } else { %>
+    <p class="muted">No description provided.</p>
+  <% } %>
+</div>
+
+<div class="panel" style="margin-top:14px;">
+  <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;">
+    <h3 style="margin:0;">Attachments</h3>
+    <form method="post" action="/admin/votes/<%= voteRequest.id %>/attachments" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;">
+      <input type="file" name="file" required />
+      <button class="btn btn-secondary" type="submit">Upload</button>
+    </form>
+  </div>
+
+  <% if (!voteRequest.attachments || voteRequest.attachments.length === 0) { %>
+    <p class="muted" style="margin-top:10px;">No attachments yet.</p>
+  <% } else { %>
+    <ul class="list" style="margin-top:10px;">
+      <% voteRequest.attachments.forEach(a => { %>
+        <li class="list-item">
+          <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;">
+            <div>
+              <strong><%= a.fileName %></strong>
+              <div class="muted small"><%= a.mimeType %> • <%= Math.round((a.sizeBytes || 0) / 1024) %> KB</div>
+            </div>
+            <a class="btn btn-secondary btn-sm" href="/vote-attachments/<%= encodeURIComponent(a.storageKey) %>" target="_blank" rel="noreferrer">Open</a>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+</div>
+
+<div class="panel" style="margin-top:14px;">
+  <h3 style="margin:0;">Summary</h3>
+  <div class="muted" style="margin-top:6px;">Eligible investors: <%= eligibleCount %></div>
+  <div class="muted" style="margin-top:4px;">Responses: <%= voteRequest.responses.length %></div>
+</div>
+
+<div class="panel" style="margin-top:14px;overflow:auto;">
+  <h3 style="margin:0 0 10px;">Responses</h3>
+  <table style="width:100%;border-collapse:collapse;min-width:980px;">
+    <thead>
+      <tr>
+        <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Investor</th>
+        <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Choice</th>
+        <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Legal name</th>
+        <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">IP</th>
+        <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Voted at</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (!voteRequest.responses || voteRequest.responses.length === 0) { %>
+        <tr>
+          <td colspan="5" style="padding:12px;" class="muted">No responses yet.</td>
+        </tr>
+      <% } %>
+
+      <% voteRequest.responses.forEach(r => { %>
+        <tr>
+          <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.06);">
+            <div style="font-weight:800;"><%= r.user?.name || r.user?.email %></div>
+            <div class="muted small"><%= r.user?.email %></div>
+          </td>
+          <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.06);"><%= r.choice %></td>
+          <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.06);"><%= r.legalName %></td>
+          <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.06);" class="muted"><%= r.ip || "-" %></td>
+          <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.06);" class="muted"><%= new Date(r.createdAt).toLocaleString() %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<div class="panel" style="margin-top:14px;overflow:auto;">
+  <h3 style="margin:0 0 10px;">Not yet voted</h3>
+  <table style="width:100%;border-collapse:collapse;min-width:720px;">
+    <thead>
+      <tr>
+        <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Investor</th>
+        <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Email</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (!notVoted || notVoted.length === 0) { %>
+        <tr>
+          <td colspan="2" style="padding:12px;" class="muted">Everyone has voted.</td>
+        </tr>
+      <% } %>
+
+      <% notVoted.forEach(u => { %>
+        <tr>
+          <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.06);"><%= u.name || "-" %></td>
+          <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.06);"><%= u.email %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>

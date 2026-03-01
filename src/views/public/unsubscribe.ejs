@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Unsubscribe</title>
+  <link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body class="center">
+  <div class="publicWrap">
+    <div class="card">
+      <h1>Email preferences</h1>
+
+      <% if (status === "ok") { %>
+        <p>You have been unsubscribed from bulk investor updates.</p>
+        <p class="muted small">You may still receive essential security/account emails.</p>
+      <% } else if (status === "invalid") { %>
+        <p>This unsubscribe link is invalid or expired.</p>
+      <% } else { %>
+        <p>Missing token.</p>
+      <% } %>
+
+      <div style="margin-top:12px;">
+        <a class="btn btn-secondary" href="/login">Back to login</a>
+      </div>
+    </div>
+
+    <div class="publicFooter">
+      © <%= new Date().getFullYear() %> Capantra. All rights reserved.
+    </div>
+  </div>
+</body>
+</html>

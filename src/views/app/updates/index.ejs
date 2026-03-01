@@ -1,0 +1,74 @@
+<% layout("layouts/main") %>
+
+<h1>Updates</h1>
+
+<form method="get" action="/updates" class="panel" style="margin-bottom: 16px;">
+  <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:end;">
+    <div style="min-width:260px;">
+      <label class="muted">Search</label>
+      <input class="input" type="text" name="q" value="<%= filters.q %>" placeholder="Search title or body..." />
+    </div>
+
+    <div>
+      <label class="muted">Type</label>
+      <select class="input" name="typeId">
+        <option value="">All</option>
+        <% types.forEach(t => { %>
+          <option value="<%= t.id %>" <%= filters.typeId === t.id ? "selected" : "" %>><%= t.name %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div style="min-width:200px;">
+      <label class="muted">Tag</label>
+      <input class="input" type="text" name="tag" value="<%= filters.tag %>" placeholder="e.g. Board" />
+    </div>
+
+    <button class="btn btn-primary" type="submit">Filter</button>
+    <a class="btn btn-secondary" href="/updates">Clear</a>
+  </div>
+</form>
+
+<div class="panel">
+  <% if (!updates.length) { %>
+    <p class="muted">No updates found.</p>
+  <% } else { %>
+    <ul class="list">
+      <% updates.forEach(u => { %>
+        <li class="list-item">
+          <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+            <div>
+              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <a href="/updates/<%= u.id %>"><strong><%= u.title %></strong></a>
+                <% if (u.type) { %>
+                  <span class="pill"><%= u.type.name %></span>
+                <% } %>
+                <% if (u.investorOnly) { %>
+                  <span class="pill pill-warn">Investor only</span>
+                <% } %>
+              </div>
+
+              <% if (u.tags && u.tags.length) { %>
+                <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
+                  <% u.tags.slice(0, 6).forEach(tagName => { %>
+                    <a class="pill" href="/app/updates?tag=<%= encodeURIComponent(tagName) %>"><%= tagName %></a>
+                  <% }) %>
+                </div>
+              <% } %>
+
+              <% if (u.body) { %>
+                <p class="muted" style="margin-top:8px;">
+                  <%= u.body.length > 160 ? (u.body.slice(0,160) + "…") : u.body %>
+                </p>
+              <% } %>
+            </div>
+
+            <div class="muted" style="white-space:nowrap;">
+              <%= u.publishedAt ? new Date(u.publishedAt).toLocaleDateString() : "" %>
+            </div>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+</div>

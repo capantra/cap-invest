@@ -1,0 +1,86 @@
+<% layout("layouts/main") %>
+
+<div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;">
+  <div>
+    <h1 style="margin:0;">Instruments</h1>
+    <p class="muted" style="margin-top:6px;">SAFE / Note register (admin-only). Export CSV for reporting.</p>
+  </div>
+
+  <div style="display:flex; gap:10px; flex-wrap:wrap;">
+    <a class="btn btn-secondary" href="/admin/instruments/export.csv?type=SAFE">Download SAFE CSV</a>
+    <a class="btn btn-secondary" href="/admin/instruments/export.csv?type=NOTE">Download NOTE CSV</a>
+  </div>
+</div>
+
+<div class="panel" style="margin-top: 14px; padding: 18px;">
+  <form method="get" action="/admin/instruments" style="display:flex; gap:10px; flex-wrap:wrap; align-items:end;">
+    <div>
+      <label>Type</label>
+      <select class="input" name="type">
+        <option value="ALL" <%= filters.type === "ALL" ? "selected" : "" %>>All</option>
+        <option value="SAFE" <%= filters.type === "SAFE" ? "selected" : "" %>>SAFE</option>
+        <option value="NOTE" <%= filters.type === "NOTE" ? "selected" : "" %>>NOTE</option>
+      </select>
+    </div>
+
+    <div>
+      <label>Status</label>
+      <select class="input" name="status">
+        <option value="ALL" <%= filters.status === "ALL" ? "selected" : "" %>>All</option>
+        <option value="OUTSTANDING" <%= filters.status === "OUTSTANDING" ? "selected" : "" %>>Outstanding</option>
+        <option value="CONVERTED" <%= filters.status === "CONVERTED" ? "selected" : "" %>>Converted</option>
+        <option value="CANCELLED" <%= filters.status === "CANCELLED" ? "selected" : "" %>>Cancelled</option>
+      </select>
+    </div>
+
+    <div style="display:flex; gap:10px;">
+      <button class="btn btn-primary" type="submit">Apply</button>
+      <a class="btn btn-secondary" href="/admin/instruments">Reset</a>
+    </div>
+  </form>
+
+  <hr style="border:none; border-top:1px solid rgba(0,0,0,0.08); margin: 16px 0;" />
+
+  <% if (!instruments || !instruments.length) { %>
+    <p class="muted">No instruments found.</p>
+  <% } else { %>
+    <div style="overflow-x:auto; border-radius:14px;">
+      <table style="width:100%; border-collapse:separate; border-spacing:0; min-width:1100px;">
+        <thead>
+          <tr>
+            <th style="text-align:left; padding:10px 12px; border-bottom:1px solid rgba(0,0,0,0.08); font-size:12px; color:rgba(15,23,42,.65);">Reference</th>
+            <th style="text-align:left; padding:10px 12px; border-bottom:1px solid rgba(0,0,0,0.08); font-size:12px; color:rgba(15,23,42,.65);">Type</th>
+            <th style="text-align:left; padding:10px 12px; border-bottom:1px solid rgba(0,0,0,0.08); font-size:12px; color:rgba(15,23,42,.65);">Status</th>
+            <th style="text-align:left; padding:10px 12px; border-bottom:1px solid rgba(0,0,0,0.08); font-size:12px; color:rgba(15,23,42,.65);">Signed</th>
+            <th style="text-align:left; padding:10px 12px; border-bottom:1px solid rgba(0,0,0,0.08); font-size:12px; color:rgba(15,23,42,.65);">Amount</th>
+            <th style="text-align:left; padding:10px 12px; border-bottom:1px solid rgba(0,0,0,0.08); font-size:12px; color:rgba(15,23,42,.65);">Discount</th>
+            <th style="text-align:left; padding:10px 12px; border-bottom:1px solid rgba(0,0,0,0.08); font-size:12px; color:rgba(15,23,42,.65);">Investor</th>
+            <th style="text-align:right; padding:10px 12px; border-bottom:1px solid rgba(0,0,0,0.08); font-size:12px; color:rgba(15,23,42,.65);"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% instruments.forEach(i => { %>
+            <% const amt = (i.purchaseAmountCents || 0) / 100; %>
+            <tr>
+              <td style="padding:12px; border-bottom:1px solid rgba(0,0,0,0.06); font-weight:800;"><%= i.instrumentRef %></td>
+              <td style="padding:12px; border-bottom:1px solid rgba(0,0,0,0.06);"><span class="pill"><%= i.type %></span></td>
+              <td style="padding:12px; border-bottom:1px solid rgba(0,0,0,0.06);">
+                <span class="pill <%= i.status === "CONVERTED" ? "pill-ok" : (i.status === "CANCELLED" ? "pill-warn" : "") %>"><%= i.status %></span>
+              </td>
+              <td style="padding:12px; border-bottom:1px solid rgba(0,0,0,0.06);"><%= new Date(i.signedAt).toLocaleDateString("en-AU") %></td>
+              <td style="padding:12px; border-bottom:1px solid rgba(0,0,0,0.06);">$<%= amt.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+              <td style="padding:12px; border-bottom:1px solid rgba(0,0,0,0.06);"><%= (i.discountPercent === null || typeof i.discountPercent === "undefined") ? "-" : (i.discountPercent + "%") %></td>
+              <td style="padding:12px; border-bottom:1px solid rgba(0,0,0,0.06);">
+                <div style="font-weight:800;"><%= i.investor?.name || "-" %></div>
+                <div class="muted small"><%= i.investor?.email || "-" %></div>
+              </td>
+              <td style="padding:12px; border-bottom:1px solid rgba(0,0,0,0.06); text-align:right; white-space:nowrap;">
+                <a class="btn btn-secondary btn-sm" href="/admin/investors/<%= i.investorId %>/edit">Open</a>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>

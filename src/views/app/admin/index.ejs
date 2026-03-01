@@ -1,0 +1,507 @@
+<% layout("layouts/main") %>
+
+<style>
+  /* =========================
+     Admin Dashboard (scoped)
+     ========================= */
+  .admPage {
+    width: 100%;
+    max-width: 1980px;
+    margin: 0 auto;
+  }
+
+  @media (max-width: 980px) {
+    .admPage { width: 95%; }
+  }
+
+  .admTop {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .admTitle {
+    margin: 0;
+    font-size: 28px;
+    letter-spacing: -0.02em;
+    color: #0f172a;
+  }
+
+  .admSubtitle {
+    margin-top: 6px;
+    color: rgba(15, 23, 42, 0.65);
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .admRightActions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  /* Grid layout */
+  .admGrid {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 14px;
+    margin-top: 14px;
+  }
+
+  @media (max-width: 980px) {
+    .admGrid { grid-template-columns: 1fr; }
+  }
+
+  .admCards {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  @media (max-width: 980px) {
+    .admCards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  @media (max-width: 560px) {
+    .admCards { grid-template-columns: 1fr; }
+  }
+
+  /* Panels */
+  .panel.admPanel {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .admCard {
+    position: relative;
+    padding: 14px;
+    border-radius: 18px;
+    border: 1px solid rgba(0,0,0,0.08);
+    background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.65));
+    box-shadow: 0 10px 35px rgba(2, 6, 23, 0.06);
+    overflow: hidden;
+  }
+
+  .admCard:before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(600px 140px at 20% -10%, rgba(59,130,246,0.10), transparent 60%),
+                radial-gradient(500px 140px at 90% 0%, rgba(16,185,129,0.08), transparent 60%);
+    pointer-events: none;
+  }
+
+  .admCardInner {
+    position: relative;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  .admCardInner > div:first-child {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .admCardLabel {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: rgba(15, 23, 42, 0.60);
+    text-transform: uppercase;
+  }
+
+  .admCardValue {
+    margin-top: 8px;
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  .admCardHint {
+    margin-top: 6px;
+    font-size: 12px;
+    color: rgba(15,23,42,0.62);
+    line-height: 1.35;
+    width: 100%;
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .admPill {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 800;
+    border: 1px solid rgba(0,0,0,0.10);
+    background: rgba(255,255,255,0.75);
+    color: #0f172a;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .admRowTitle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+
+  .admH3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 900;
+    color: #0f172a;
+  }
+
+  .admSmallMuted {
+    color: rgba(15,23,42,0.62);
+    font-size: 12px;
+    margin-top: 4px;
+  }
+
+  /* Quick links */
+  .admQuick {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  @media (max-width: 560px) {
+    .admQuick { grid-template-columns: 1fr; }
+  }
+
+  .admLinkCard {
+    display: block;
+    padding: 12px;
+    border-radius: 16px;
+    border: 1px solid rgba(0,0,0,0.08);
+    background: rgba(255,255,255,0.65);
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+  }
+
+  .admLinkCard:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 28px rgba(2,6,23,0.08);
+    background: rgba(255,255,255,0.78);
+  }
+
+  .admLinkTitle {
+    font-weight: 900;
+    color: #0f172a;
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.25;
+  }
+
+  .admLinkDesc {
+    margin-top: 6px;
+    color: rgba(15,23,42,0.62);
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  /* Status list */
+  .admList {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 10px;
+  }
+
+  .admListItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(0,0,0,0.08);
+    background: rgba(255,255,255,0.65);
+  }
+
+  .admListItem .left {
+    display: grid;
+    gap: 3px;
+  }
+
+  .admListItem .title {
+    font-weight: 900;
+    color: #0f172a;
+    font-size: 13px;
+  }
+
+  .admListItem .sub {
+    font-size: 12px;
+    color: rgba(15,23,42,0.62);
+  }
+
+  /* Badges */
+  .admBadge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 900;
+    border: 1px solid rgba(0,0,0,0.10);
+    background: rgba(15,23,42,0.05);
+    color: #0f172a;
+    white-space: nowrap;
+  }
+
+  .admBadgeOk { background: rgba(16,185,129,0.10); }
+  .admBadgeWarn { background: rgba(245,158,11,0.12); }
+  .admBadgeInfo { background: rgba(59,130,246,0.10); }
+
+  /* Helper strip */
+  .admStrip {
+    margin-top: 14px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 16px;
+    border: 1px solid rgba(0,0,0,0.08);
+    background: rgba(255,255,255,0.65);
+  }
+
+  .admStrip .k {
+    font-size: 12px;
+    font-weight: 900;
+    color: rgba(15,23,42,0.65);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  .admStrip .v {
+    font-size: 12px;
+    color: rgba(15,23,42,0.72);
+  }
+
+  .admMono {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+</style>
+
+<div class="admPage">
+  <!-- Header -->
+  <div class="admTop">
+    <div>
+      <h1 class="admTitle">Admin Dashboard</h1>
+      <div class="admSubtitle">
+        Overview of investors, instruments, updates, and operational activity.
+      </div>
+    </div>
+
+    <div class="admRightActions">
+      <a class="btn btn-secondary" href="/admin/instruments/export/safe.csv">Download SAFE CSV</a>
+      <a class="btn btn-primary" href="/admin/updates/new">Create update</a>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="admCards">
+    <div class="admCard">
+      <div class="admCardInner">
+        <div>
+          <div class="admCardLabel">Users</div>
+          <div class="admCardValue admMono"><%= (stats && typeof stats.users !== "undefined") ? stats.users : 0 %></div>
+          <div class="admCardHint">Admin, Investor, and Pre-investor Accounts.</div>
+        </div>
+        <span class="admPill">Directory</span>
+      </div>
+    </div>
+
+    <div class="admCard">
+      <div class="admCardInner">
+        <div>
+          <div class="admCardLabel">Updates</div>
+          <div class="admCardValue admMono"><%= (stats && typeof stats.updates !== "undefined") ? stats.updates : 0 %></div>
+          <div class="admCardHint">Created updates (draft + published).</div>
+        </div>
+        <span class="admPill">Comms</span>
+      </div>
+    </div>
+
+    <div class="admCard">
+      <div class="admCardInner">
+        <div>
+          <div class="admCardLabel">Total Company Valuation</div>
+          <div class="admCardValue admMono" style="color:#009775;">$<%= totalCompanyValuation ? totalCompanyValuation.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00' %></div>
+          <div class="admCardHint">Based on blended average share price across all investors.</div>
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(0,151,117,0.2);font-size:13px;color:rgba(15,23,42,0.72);">
+            <strong>Avg Share Price:</strong> $<%= averageSharePrice ? averageSharePrice.toFixed(4) : '0.0000' %>
+          </div>
+        </div>
+        <span class="admPill">Valuation</span>
+      </div>
+    </div>
+    <div class="admCard">
+      <div class="admCardInner">
+        <div>
+          <div class="admCardLabel">Audit entries</div>
+          <div class="admCardValue admMono"><%= (stats && typeof stats.audit !== "undefined") ? stats.audit : 0 %></div>
+          <div class="admCardHint">Actions recorded for compliance traceability.</div>
+        </div>
+        <span class="admPill">Logs</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Helper strip -->
+  <div class="admStrip">
+    <div class="k">Quick actions</div>
+    <div class="v">Manage investors, review instruments, publish updates, and export compliance-friendly registers.</div>
+  </div>
+
+  <!-- Main layout -->
+  <div class="admGrid">
+    <!-- Left column -->
+    <div class="panel admPanel">
+      <div class="admRowTitle">
+        <div>
+          <div class="admH3">Quick Links</div>
+          <div class="admSmallMuted">Common admin workflows.</div>
+        </div>
+        <span class="admBadge admBadgeInfo">Admin</span>
+      </div>
+
+      <div class="admQuick">
+        <a class="admLinkCard" href="/admin/investors">
+          <div class="admLinkTitle">Investor & Pre-investor Directory</div>
+          <div class="admLinkDesc">View, create, edit accounts and manage invites.</div>
+        </a>
+
+        <a class="admLinkCard" href="/admin/instruments">
+          <div class="admLinkTitle">Instruments Register</div>
+          <div class="admLinkDesc">Track SAFE/Note instruments, statuses, and export CSV.</div>
+        </a>
+
+        <a class="admLinkCard" href="/admin/updates/new">
+          <div class="admLinkTitle">Create Investor Update</div>
+          <div class="admLinkDesc">Draft a portal update and publish to the right audience.</div>
+        </a>
+
+        <a class="admLinkCard" href="/admin/audit">
+          <div class="admLinkTitle">Audit Log</div>
+          <div class="admLinkDesc">Search actions by actor and event type for compliance.</div>
+        </a>
+      </div>
+
+      <hr style="border:none; border-top:1px solid rgba(0,0,0,0.08); margin: 16px 0;" />
+
+      <div class="admRowTitle">
+        <div>
+          <div class="admH3">Operations Checklist</div>
+          <div class="admSmallMuted">A lightweight “what to do next” view.</div>
+        </div>
+        <span class="admBadge admBadgeOk">Suggested</span>
+      </div>
+
+      <ul class="admList">
+        <li class="admListItem">
+          <div class="left">
+            <div class="title">Keep the SAFE register up to date</div>
+            <div class="sub">Add instruments only for pre-investors. Export monthly.</div>
+          </div>
+          <span class="admBadge admBadgeInfo">Compliance</span>
+        </li>
+
+        <li class="admListItem">
+          <div class="left">
+            <div class="title">Publish regular investor updates</div>
+            <div class="sub">Monthly cadence recommended (with quarterly deep dive).</div>
+          </div>
+          <span class="admBadge">Comms</span>
+        </li>
+
+        <li class="admListItem">
+          <div class="left">
+            <div class="title">Review bounced/failed recipients</div>
+            <div class="sub">Ensure invite + update deliverability remains high.</div>
+          </div>
+          <span class="admBadge admBadgeWarn">Deliverability</span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Right column -->
+    <div class="panel admPanel">
+      <div class="admRowTitle">
+        <div>
+          <div class="admH3">System Status</div>
+          <div class="admSmallMuted">High-level health signals.</div>
+        </div>
+        <span class="admBadge">Overview</span>
+      </div>
+
+      <ul class="admList">
+        <li class="admListItem">
+          <div class="left">
+            <div class="title">Role guardrails</div>
+            <div class="sub">Instruments allowed only for PREINVESTOR.</div>
+          </div>
+          <span class="admBadge admBadgeOk">Enabled</span>
+        </li>
+
+        <li class="admListItem">
+          <div class="left">
+            <div class="title">CSV export</div>
+            <div class="sub">SAFE register download available.</div>
+          </div>
+          <span class="admBadge admBadgeOk">Ready</span>
+        </li>
+
+        <li class="admListItem">
+          <div class="left">
+            <div class="title">Audit logging</div>
+            <div class="sub">Key admin actions tracked and searchable.</div>
+          </div>
+          <span class="admBadge admBadgeOk">Active</span>
+        </li>
+      </ul>
+
+      <hr style="border:none; border-top:1px solid rgba(0,0,0,0.08); margin: 16px 0;" />
+
+      <div class="admRowTitle">
+        <div>
+          <div class="admH3">Exports</div>
+          <div class="admSmallMuted">Compliance-friendly register downloads.</div>
+        </div>
+      </div>
+
+      <div style="display:grid; gap:10px;">
+        <a class="btn btn-secondary" href="/admin/instruments/export/safe.csv" style="justify-content:center;">
+          Download SAFE register (CSV)
+        </a>
+        <a class="btn btn-secondary" href="/admin/instruments/export/safe.csv?type=NOTE" style="justify-content:center;">
+          Download NOTE register (CSV)
+        </a>
+      </div>
+
+      <div class="admSmallMuted" style="margin-top:10px;">
+        Tip: run exports monthly and attach to your internal finance pack.
+      </div>
+    </div>
+  </div>
+</div>

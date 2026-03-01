@@ -1,0 +1,329 @@
+<% layout("layouts/main") %>
+
+<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+  <div>
+    <h1 style="margin:0;">Connect Bank Accounts</h1>
+    <div class="muted" style="margin-top:6px;">Set up your Macquarie treasury accounts with Basiq.</div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <% if (basiqUserId) { %>
+      <a class="btn btn-secondary" href="/admin/treasury/setup/reset">Reset Setup</a>
+    <% } %>
+    <a class="btn btn-secondary" href="/admin/treasury">← Treasury</a>
+  </div>
+</div>
+
+<!-- Step 1: Create Basiq User -->
+<div class="panel" style="margin-top:14px;" id="step1">
+  <h3 style="margin:0 0 10px;">Step 1: Create Basiq Connection</h3>
+  <div class="muted" style="margin-bottom:14px;">
+    Enter your email address to create a secure connection with Basiq.
+  </div>
+
+  <% if (!basiqUserId) { %>
+    <form id="create-user-form" style="max-width:500px;">
+      <div style="display:grid;gap:10px;">
+        <div>
+          <label>Email Address</label>
+          <input 
+            type="email" 
+            id="email" 
+            name="email" 
+            required 
+            placeholder="admin@capantra.com"
+            value="<%= user.email %>"
+          />
+        </div>
+        <div>
+          <label>Mobile Number</label>
+          <input 
+            type="tel" 
+            id="mobile" 
+            name="mobile" 
+            required 
+            placeholder="+61412345678"
+          />
+        </div>
+        <button type="submit" class="btn btn-primary" id="create-user-btn">
+          Create Connection
+        </button>
+      </div>
+    </form>
+  <% } else { %>
+    <div style="padding:12px;background:rgba(0,151,117,0.1);border-radius:8px;border:1px solid rgba(0,151,117,0.2);">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:20px;">✓</span>
+        <div>
+          <div style="font-weight:600;">Basiq connection created</div>
+          <div class="muted small">User ID: <%= basiqUserId %></div>
+        </div>
+      </div>
+    </div>
+  <% } %>
+</div>
+
+<!-- Step 2: Connect Bank Accounts -->
+<div class="panel" style="margin-top:14px;" id="step2">
+  <h3 style="margin:0 0 10px;">Step 2: Connect Your Macquarie Accounts</h3>
+  <div class="muted" style="margin-bottom:14px;">
+    Click the button below to open Basiq's secure connection flow. You'll be redirected to Macquarie Bank to authorize access.
+  </div>
+
+  <div id="auth-link-container" style="display:none;">
+    <div style="padding:16px;background:rgba(59,130,246,0.08);border-radius:8px;border:1px solid rgba(59,130,246,0.2);margin-bottom:14px;">
+      <div style="margin-bottom:10px;font-weight:600;">Important:</div>
+      <ol style="margin:0;padding-left:20px;font-size:14px;line-height:1.6;">
+        <li>A new window will open with Basiq's secure login</li>
+        <li>Select <strong>Macquarie Bank</strong> as your institution</li>
+        <li>Log in with your Macquarie credentials</li>
+        <li>Select both accounts:
+          <ul style="margin:6px 0;">
+            <li>Cash Management Account</li>
+            <li>Cash Management Accelerator</li>
+          </ul>
+        </li>
+        <li>Authorize the connection</li>
+        <li>Return to this page when complete</li>
+      </ol>
+    </div>
+
+    <div style="display:flex;gap:10px;align-items:center;">
+      <button onclick="openAuthLink()" class="btn btn-primary" id="auth-btn">
+        Connect to Macquarie Bank
+      </button>
+      <span class="muted small" id="auth-status"></span>
+    </div>
+  </div>
+
+  <div id="auth-placeholder" style="padding:20px;text-align:center;background:rgba(0,0,0,0.02);border-radius:8px;">
+    <p class="muted">Complete Step 1 first to generate your connection link.</p>
+  </div>
+</div>
+
+<!-- Step 3: Import Accounts -->
+<div class="panel" style="margin-top:14px;" id="step3">
+  <h3 style="margin:0 0 10px;">Step 3: Import Connected Accounts</h3>
+  <div class="muted" style="margin-bottom:14px;">
+    After connecting your Macquarie accounts, click below to import them into the system.
+  </div>
+
+  <button onclick="importAccounts()" class="btn btn-primary" id="import-btn">
+    Import Accounts
+  </button>
+
+  <div id="import-result" style="margin-top:14px;display:none;"></div>
+</div>
+
+<script>
+let authUrl = null;
+let authWindow = null;
+
+// Wait for DOM to be ready
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM loaded - attaching form handler');
+  
+  const form = document.getElementById('create-user-form');
+  console.log('Form found:', form ? 'YES' : 'NO');
+  
+  if (form) {
+    form.addEventListener('submit', handleCreateUserSubmit);
+  }
+  
+  // Restore mobile from localStorage if available
+  const savedMobile = localStorage.getItem('basiq_user_mobile');
+  if (savedMobile) {
+    console.log('Restored mobile from localStorage:', savedMobile);
+    // User already completed Step 1, show auth section
+    document.getElementById('auth-link-container').style.display = 'block';
+    document.getElementById('auth-placeholder').style.display = 'none';
+  }
+});
+
+<% if (basiqUserId) { %>
+  // User already created, show auth link section
+  document.addEventListener('DOMContentLoaded', () => {
+    createAuthLink();
+  });
+<% } %>
+
+async function handleCreateUserSubmit(e) {
+  e.preventDefault();
+  
+  console.log('Form submitted');
+  
+  const btn = document.getElementById('create-user-btn');
+  const email = document.getElementById('email').value;
+  const mobile = document.getElementById('mobile').value;
+  
+  console.log('Email:', email, 'Mobile:', mobile);
+  
+  if (!mobile) {
+    alert('Mobile number is required');
+    return;
+  }
+  
+  // Store mobile in localStorage
+  localStorage.setItem('basiq_user_mobile', mobile);
+  console.log('Saved mobile to localStorage:', mobile);
+  
+  btn.disabled = true;
+  btn.textContent = 'Creating connection...';
+  
+  try {
+    const response = await fetch('/admin/treasury/setup/create-user', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, mobile }),
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      authUrl = data.authUrl;
+      
+      // Store userId in localStorage as well
+      localStorage.setItem('basiq_user_id', data.userId);
+      localStorage.setItem('basiq_user_email', email);
+      console.log('Step 1 Complete - Mobile:', mobile, 'UserId:', data.userId, 'Stored in localStorage');
+      
+      document.getElementById('step1').innerHTML = `
+        <div style="padding:12px;background:rgba(0,151,117,0.1);border-radius:8px;border:1px solid rgba(0,151,117,0.2);">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:20px;">✓</span>
+            <div>
+              <div style="font-weight:600;">Basiq connection created</div>
+              <div class="muted small">User ID: ${data.userId}</div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Show auth link
+      document.getElementById('auth-link-container').style.display = 'block';
+      document.getElementById('auth-placeholder').style.display = 'none';
+    } else {
+      alert('Failed to create connection: ' + (data.error || 'Unknown error'));
+      btn.disabled = false;
+      btn.textContent = 'Create Connection';
+    }
+  } catch (error) {
+    alert('Failed to create connection: ' + error.message);
+    btn.disabled = false;
+    btn.textContent = 'Create Connection';
+  }
+}
+
+async function createAuthLink() {
+  document.getElementById('auth-link-container').style.display = 'block';
+  document.getElementById('auth-placeholder').style.display = 'none';
+}
+
+function openAuthLink() {
+  // Get mobile from localStorage
+  const email = '<%= user.email %>';
+  const mobile = localStorage.getItem('basiq_user_mobile');
+  const userId = localStorage.getItem('basiq_user_id');
+  
+  console.log('openAuthLink called - Mobile:', mobile, 'UserId:', userId);
+  
+  if (!mobile || !userId) {
+    alert('Please complete Step 1 first by entering your email and mobile number');
+    console.log('Missing data - Mobile:', mobile, 'UserId:', userId);
+    return;
+  }
+  
+  fetch('/admin/treasury/setup/create-user', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, mobile }),
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success && data.authUrl) {
+      authUrl = data.authUrl;
+      authWindow = window.open(authUrl, 'basiq-auth', 'width=500,height=700');
+      
+      document.getElementById('auth-status').textContent = 'Connection window opened...';
+      
+      // Check if window is closed
+      const checkClosed = setInterval(() => {
+        if (authWindow.closed) {
+          clearInterval(checkClosed);
+          document.getElementById('auth-status').textContent = 'Connection window closed. Click "Import Accounts" when ready.';
+        }
+      }, 1000);
+    }
+  })
+  .catch(error => {
+    alert('Failed to generate auth link: ' + error.message);
+  });
+}
+
+async function importAccounts() {
+  const btn = document.getElementById('import-btn');
+  const resultDiv = document.getElementById('import-result');
+  
+  btn.disabled = true;
+  btn.textContent = 'Importing...';
+  resultDiv.style.display = 'none';
+  
+  try {
+    const response = await fetch('/admin/treasury/setup/import-accounts', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = `
+        <div style="padding:12px;background:rgba(0,151,117,0.1);border-radius:8px;border:1px solid rgba(0,151,117,0.2);">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+            <span style="font-size:20px;">✓</span>
+            <div style="font-weight:600;">Successfully imported ${data.imported} account(s)</div>
+          </div>
+          <div style="font-size:14px;line-height:1.6;">
+            ${data.accounts.map(acc => `
+              <div style="margin-top:6px;">
+                <strong>${acc.name}</strong> (${acc.institution})
+              </div>
+            `).join('')}
+          </div>
+          <div style="margin-top:14px;">
+            <a href="/admin/treasury" class="btn btn-primary">Go to Treasury Dashboard</a>
+          </div>
+        </div>
+      `;
+      btn.style.display = 'none';
+    } else {
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = `
+        <div style="padding:12px;background:rgba(245,158,11,0.1);border-radius:8px;border:1px solid rgba(245,158,11,0.2);">
+          <div style="font-weight:600;margin-bottom:6px;">Import Failed</div>
+          <div class="muted small">${data.error || 'Please complete the bank connection first.'}</div>
+        </div>
+      `;
+      btn.disabled = false;
+      btn.textContent = 'Try Again';
+    }
+  } catch (error) {
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = `
+      <div style="padding:12px;background:rgba(239,68,68,0.1);border-radius:8px;border:1px solid rgba(239,68,68,0.2);">
+        <div style="font-weight:600;margin-bottom:6px;">Error</div>
+        <div class="muted small">${error.message}</div>
+      </div>
+    `;
+    btn.disabled = false;
+    btn.textContent = 'Try Again';
+  }
+}
+</script>

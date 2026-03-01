@@ -1,0 +1,43 @@
+<nav class="nav">
+  <div class="nav-section">
+    <div class="nav-title">App</div>
+    <a class="nav-item" href="/dashboard">Dashboard</a>
+    <a class="nav-item" href="/updates" style="display: flex; align-items: center; gap: 8px;">
+      Updates
+      <span id="notification-badge" style="display: none; background: #009775; color: white; border-radius: 10px; padding: 2px 6px; font-size: 11px; font-weight: 700;"></span>
+    </a>
+    <a class="nav-item" href="/account">Account</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-title">Admin</div>
+    <a class="nav-item" href="/admin">Admin dashboard</a>
+    <a class="nav-item" href="/admin/users">Users & Invites</a>
+    <a class="nav-item" href="/admin/investors">Investors</a>
+    <a class="nav-item" href="/admin/instruments">Instruments</a>
+    <a class="nav-item" href="/admin/votes">Voting</a>
+    <% if (user && user.canViewTreasury) { %>
+      <a class="nav-item" href="/admin/treasury">Treasury</a>
+    <% } %>
+    <a class="nav-item" href="/admin/updates">Updates (Admin)</a>
+    <a class="nav-item" href="/admin/updates/new">Create update</a>
+    <a class="nav-item" href="/admin/instruments/export/safe.csv">Download SAFE register (CSV)</a>
+    <a class="nav-item" href="/admin/audit">Audit log</a>
+  </div>
+</nav>
+
+<script>
+// Fetch notification count on page load
+fetch('/api/notifications/count')
+  .then(r => r.json())
+  .then(data => {
+    if (data.hasNew && data.count > 0) {
+      const badge = document.getElementById('notification-badge');
+      if (badge) {
+        badge.textContent = data.count;
+        badge.style.display = 'inline-block';
+      }
+    }
+  })
+  .catch(err => console.error('Failed to fetch notifications:', err));
+</script>

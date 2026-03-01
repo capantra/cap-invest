@@ -1,0 +1,64 @@
+<% layout("layouts/main") %>
+
+<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+  <div>
+    <h1 style="margin:0;">Voting</h1>
+    <div class="muted" style="margin-top:6px;">Create vote requests and monitor responses.</div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <a class="btn btn-secondary" href="/admin">← Admin</a>
+    <a class="btn btn-primary" href="/admin/votes/new">Create vote request</a>
+  </div>
+</div>
+
+<div class="panel" style="margin-top:14px;overflow:auto;">
+  <table style="width:100%;border-collapse:collapse;min-width:980px;">
+    <thead>
+      <tr>
+        <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Title</th>
+        <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Status</th>
+        <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Responses</th>
+        <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Attachments</th>
+        <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Created</th>
+        <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (!voteRequests || voteRequests.length === 0) { %>
+        <tr>
+          <td colspan="6" style="padding:12px;" class="muted">No vote requests yet.</td>
+        </tr>
+      <% } %>
+
+      <% voteRequests.forEach(v => { %>
+        <tr>
+          <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.06);">
+            <div style="font-weight:900;"><%= v.title %></div>
+            <% if (v.description) { %>
+              <div class="muted small" style="margin-top:4px;max-width:680px;"><%= v.description %></div>
+            <% } %>
+          </td>
+          <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.06);">
+            <% if (v.status === "OPEN") { %>
+              <span class="pill pill-ok">Open</span>
+            <% } else { %>
+              <span class="pill pill-warn">Closed</span>
+            <% } %>
+          </td>
+          <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.06);" class="muted">
+            <%= v._count?.responses || 0 %>
+          </td>
+          <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.06);" class="muted">
+            <%= v._count?.attachments || 0 %>
+          </td>
+          <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.06);" class="muted">
+            <%= new Date(v.createdAt).toLocaleString() %>
+          </td>
+          <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.06);">
+            <a class="btn btn-secondary" href="/admin/votes/<%= v.id %>">View</a>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>

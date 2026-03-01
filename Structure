@@ -1,0 +1,65 @@
+investor-portal/
+├─ prisma/
+│  ├─ schema.prisma
+│  └─ migrations/...
+├─ src/
+│  ├─ server.ts
+│  ├─ env.ts
+│  ├─ prisma.ts
+│  ├─ routes/
+│  │  ├─ public.routes.ts
+│  │  ├─ app.routes.ts
+│  │  ├─ admin.routes.ts
+│  │  └─ index.ts
+│  ├─ middleware/
+│  │  ├─ requireAuth.ts
+│  │  ├─ requireAgreement.ts
+│  │  ├─ requireRole.ts
+│  │  ├─ audit.ts
+│  │  └─ rateLimit.ts
+│  ├─ services/
+│  │  ├─ auth.service.ts
+│  │  ├─ invite.service.ts
+│  │  ├─ otp.service.ts
+│  │  ├─ agreements.service.ts
+│  │  ├─ updates.service.ts
+│  │  ├─ email.service.ts
+│  │  ├─ unsubscribe.service.ts
+│  │  ├─ storage.service.ts
+│  │  └─ search.service.ts
+│  ├─ utils/
+│  │  ├─ crypto.ts
+│  │  ├─ tokens.ts
+│  │  ├─ time.ts
+│  │  └─ validate.ts
+│  ├─ views/
+│  │  ├─ layouts/
+│  │  │  └─ main.ejs
+│  │  ├─ partials/
+│  │  │  ├─ nav.investor.ejs
+│  │  │  ├─ nav.preinvestor.ejs
+│  │  │  ├─ flash.ejs
+│  │  │  └─ footer.ejs
+│  │  ├─ public/
+│  │  │  ├─ login.ejs
+│  │  │  ├─ otp.ejs
+│  │  │  ├─ invite.ejs
+│  │  │  ├─ agreement.ejs
+│  │  │  └─ unsubscribe.ejs
+│  │  ├─ app/
+│  │  │  ├─ dashboard.ejs
+│  │  │  ├─ updates.ejs
+│  │  │  ├─ update.view.ejs
+│  │  │  ├─ documents.ejs
+│  │  │  ├─ account.ejs
+│  │  │  └─ preferences.ejs
+│  │  └─ admin/
+│  │     ├─ index.ejs
+│  │     ├─ users.ejs
+│  │     ├─ updates.new.ejs
+│  │     ├─ campaigns.new.ejs
+│  │     └─ audit.ejs
+│  └─ public-assets/
+│     └─ styles.css
+├─ package.json
+└─ .env

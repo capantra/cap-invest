@@ -1,0 +1,16 @@
+<% layout("layouts/main") %>
+
+<h1>Email preferences</h1>
+
+<form method="post" action="/account/preferences">
+  <label class="checkbox">
+    <input type="checkbox" name="bulkUpdatesOptOut" <%= (pref?.bulkUpdatesOptOut ? "checked" : "") %> />
+    Unsubscribe from bulk investor updates
+  </label>
+
+  <p class="muted small">
+    You will still receive essential account/security emails (invites, OTPs, password resets).
+  </p>
+
+  <button class="btn btn-primary" type="submit">Save</button>
+</form>

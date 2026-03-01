@@ -1,0 +1,54 @@
+<nav class="nav">
+  <div class="nav-title">Portal</div>
+
+  <a class="nav-link" href="/dashboard">Dashboard</a>
+  <a class="nav-link" href="/updates" style="display: flex; align-items: center; gap: 8px;">
+    Updates
+    <span id="notification-badge" style="display: none; background: #009775; color: white; border-radius: 10px; padding: 2px 6px; font-size: 11px; font-weight: 700;"></span>
+  </a>
+  <a class="nav-link" href="/votes" style="display: flex; align-items: center; gap: 8px;">
+    Voting
+    <span id="vote-badge" style="display: none; background: #f59e0b; color: #111827; border-radius: 10px; padding: 2px 6px; font-size: 11px; font-weight: 700;"></span>
+  </a>
+  <a class="nav-link" href="/documents">Data Room</a>
+
+  <% if (user && user.role === "ADMIN") { %>
+    <div class="nav-sep"></div>
+    <div class="nav-title">Admin</div>
+    <a class="nav-link" href="/admin/updates/new">Create update</a>
+  <% } %>
+
+  <div class="nav-sep"></div>
+
+  <a class="nav-link" href="/account">Account</a>
+  <a class="nav-link" href="/logout">Logout</a>
+</nav>
+
+<script>
+// Fetch notification count on page load
+fetch('/api/notifications/count')
+  .then(r => r.json())
+  .then(data => {
+    if (data.hasNew && data.count > 0) {
+      const badge = document.getElementById('notification-badge');
+      if (badge) {
+        badge.textContent = data.count;
+        badge.style.display = 'inline-block';
+      }
+    }
+  })
+  .catch(err => console.error('Failed to fetch notifications:', err));
+
+fetch('/api/votes/pending-count')
+  .then(r => r.json())
+  .then(data => {
+    if (data.hasPending && data.count > 0) {
+      const badge = document.getElementById('vote-badge');
+      if (badge) {
+        badge.textContent = data.count;
+        badge.style.display = 'inline-block';
+      }
+    }
+  })
+  .catch(err => console.error('Failed to fetch vote count:', err));
+</script>

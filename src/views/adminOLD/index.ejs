@@ -1,0 +1,44 @@
+<% /* no layout lib version: include layout manually */ %>
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin</title>
+  <link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <%- include("../partials/nav.investor.ejs") %>
+      <div class="nav-divider"></div>
+      <div class="nav-title">Admin</div>
+      <a class="nav-link" href="/admin/users">Users & Invites</a>
+      <a class="nav-link" href="/admin/updates/new">New Update</a>
+      <a class="nav-link" href="/admin/audit">Audit Logs</a>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-left"><a class="brand" href="/admin">Admin</a></div>
+        <div class="topbar-right">
+          <span class="muted"><%= user.email %></span>
+          <a href="/logout" class="btn btn-secondary">Logout</a>
+        </div>
+      </header>
+
+      <section class="content">
+        <h1>Admin dashboard</h1>
+        <div class="grid">
+          <div class="panel"><h3>Users</h3><p class="muted"><%= stats.users %></p></div>
+          <div class="panel"><h3>Updates</h3><p class="muted"><%= stats.updates %></p></div>
+          <div class="panel"><h3>Campaigns</h3><p class="muted"><%= stats.campaigns %></p></div>
+          <div class="panel"><h3>Audit logs</h3><p class="muted"><%= stats.audit %></p></div>
+        </div>
+      </section>
+
+      <footer class="footer"><span class="muted">© <%= new Date().getFullYear() %></span></footer>
+    </main>
+  </div>
+</body>
+</html>

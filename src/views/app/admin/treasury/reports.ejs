@@ -1,0 +1,209 @@
+<% layout("layouts/main") %>
+
+<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+  <div>
+    <h1 style="margin:0;">Reconciliation Reports</h1>
+    <div class="muted" style="margin-top:6px;">View reconciled, unreconciled, and disputed transactions.</div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <a class="btn btn-secondary" href="/admin/treasury">← Treasury</a>
+    <a class="btn btn-secondary" href="/admin/treasury/reconcile">Reconcile</a>
+  </div>
+</div>
+
+<!-- Date filter -->
+<div class="panel" style="margin-top:14px;">
+  <form method="get" action="/admin/treasury/reports" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">
+    <div>
+      <label>From Date</label>
+      <input type="date" name="from" value="<%= fromDate.toISOString().split('T')[0] %>" />
+    </div>
+    <div>
+      <label>To Date</label>
+      <input type="date" name="to" value="<%= toDate.toISOString().split('T')[0] %>" />
+    </div>
+    <button type="submit" class="btn btn-primary">Filter</button>
+  </form>
+</div>
+
+<!-- Summary Cards -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:14px;">
+  <div class="panel" style="border-left:4px solid #10b981;">
+    <div class="muted small">Reconciled Transactions</div>
+    <div style="font-weight:700;font-size:24px;margin-top:6px;"><%= summary.totalReconciledCount %></div>
+    <div style="font-weight:600;font-size:16px;color:#10b981;margin-top:4px;">
+      AUD <%= (summary.totalReconciledAmount / 100).toLocaleString('en-AU', { minimumFractionDigits: 2 }) %>
+    </div>
+  </div>
+
+  <div class="panel" style="border-left:4px solid #f59e0b;">
+    <div class="muted small">Unreconciled Transactions</div>
+    <div style="font-weight:700;font-size:24px;margin-top:6px;"><%= summary.totalUnreconciledCount %></div>
+    <div style="font-weight:600;font-size:16px;color:#f59e0b;margin-top:4px;">
+      AUD <%= (summary.totalUnreconciledAmount / 100).toLocaleString('en-AU', { minimumFractionDigits: 2 }) %>
+    </div>
+  </div>
+
+  <div class="panel" style="border-left:4px solid #ef4444;">
+    <div class="muted small">Disputed Transactions</div>
+    <div style="font-weight:700;font-size:24px;margin-top:6px;"><%= disputedTransactions.length %></div>
+    <div class="muted small" style="margin-top:4px;">Requires review</div>
+  </div>
+</div>
+
+<!-- Reconciled Transactions -->
+<div style="margin-top:24px;">
+  <h3 style="margin:0 0 10px;">Reconciled Transactions (<%= reconciledTransactions.length %>)</h3>
+  
+  <% if (reconciledTransactions.length === 0) { %>
+    <div class="panel" style="text-align:center;padding:40px;">
+      <p class="muted">No reconciled transactions in this period.</p>
+    </div>
+  <% } else { %>
+    <div class="panel" style="overflow:auto;">
+      <table style="width:100%;border-collapse:collapse;min-width:900px;">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Date</th>
+            <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Account</th>
+            <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Description</th>
+            <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Investor</th>
+            <th style="text-align:right;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Expected</th>
+            <th style="text-align:right;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Actual</th>
+            <th style="text-align:right;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Variance</th>
+            <th style="text-align:center;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% reconciledTransactions.forEach(rec => { %>
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.08);">
+                <%= new Date(rec.bankTransaction.transactionDate).toLocaleDateString('en-AU') %>
+              </td>
+              <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.08);">
+                <%= rec.bankAccount.accountName %>
+              </td>
+              <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.08);">
+                <%= rec.bankTransaction.description %>
+              </td>
+              <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.08);">
+                <%= rec.investor.email %>
+              </td>
+              <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.08);text-align:right;font-weight:600;">
+                $<%= (rec.expectedAmountCents / 100).toLocaleString('en-AU', { minimumFractionDigits: 2 }) %>
+              </td>
+              <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.08);text-align:right;font-weight:600;">
+                $<%= (rec.actualAmountCents / 100).toLocaleString('en-AU', { minimumFractionDigits: 2 }) %>
+              </td>
+              <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.08);text-align:right;font-weight:600;color:<%= rec.varianceCents === 0 ? '#10b981' : '#f59e0b' %>;">
+                <%= rec.varianceCents === 0 ? '—' : '$' + (rec.varianceCents / 100).toLocaleString('en-AU', { minimumFractionDigits: 2 }) %>
+              </td>
+              <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.08);text-align:center;">
+                <span class="pill pill-ok">Reconciled</span>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+
+<!-- Unreconciled Transactions -->
+<div style="margin-top:24px;">
+  <h3 style="margin:0 0 10px;">Unreconciled Transactions (<%= unreconciledTransactions.length %>)</h3>
+  
+  <% if (unreconciledTransactions.length === 0) { %>
+    <div class="panel" style="text-align:center;padding:40px;">
+      <p style="font-size:18px;margin:0 0 8px;">✅ All transactions reconciled</p>
+      <p class="muted">No unreconciled transactions in this period.</p>
+    </div>
+  <% } else { %>
+    <div class="panel" style="overflow:auto;">
+      <table style="width:100%;border-collapse:collapse;min-width:800px;">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Date</th>
+            <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Account</th>
+            <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Description</th>
+            <th style="text-align:right;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Amount</th>
+            <th style="text-align:center;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% unreconciledTransactions.forEach(txn => { %>
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.08);">
+                <%= new Date(txn.transactionDate).toLocaleDateString('en-AU') %>
+              </td>
+              <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.08);">
+                <%= txn.bankAccount.accountName %>
+              </td>
+              <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.08);">
+                <%= txn.description %>
+              </td>
+              <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.08);text-align:right;font-weight:600;color:#10b981;">
+                $<%= (txn.amountCents / 100).toLocaleString('en-AU', { minimumFractionDigits: 2 }) %>
+              </td>
+              <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.08);text-align:center;">
+                <a href="/admin/treasury/reconcile?accountId=<%= txn.bankAccountId %>" class="btn btn-secondary" style="font-size:12px;padding:6px 10px;">
+                  Reconcile
+                </a>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+
+<!-- Disputed Transactions -->
+<% if (disputedTransactions.length > 0) { %>
+  <div style="margin-top:24px;">
+    <h3 style="margin:0 0 10px;">Disputed Transactions (<%= disputedTransactions.length %>)</h3>
+    
+    <div class="panel" style="overflow:auto;">
+      <table style="width:100%;border-collapse:collapse;min-width:900px;">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Date</th>
+            <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Account</th>
+            <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Investor</th>
+            <th style="text-align:right;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Expected</th>
+            <th style="text-align:right;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Actual</th>
+            <th style="text-align:right;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Variance</th>
+            <th style="text-align:center;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% disputedTransactions.forEach(rec => { %>
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.08);">
+                <%= new Date(rec.bankTransaction.transactionDate).toLocaleDateString('en-AU') %>
+              </td>
+              <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.08);">
+                <%= rec.bankAccount.accountName %>
+              </td>
+              <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.08);">
+                <%= rec.investor.email %>
+              </td>
+              <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.08);text-align:right;font-weight:600;">
+                $<%= (rec.expectedAmountCents / 100).toLocaleString('en-AU', { minimumFractionDigits: 2 }) %>
+              </td>
+              <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.08);text-align:right;font-weight:600;">
+                $<%= (rec.actualAmountCents / 100).toLocaleString('en-AU', { minimumFractionDigits: 2 }) %>
+              </td>
+              <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.08);text-align:right;font-weight:600;color:#ef4444;">
+                $<%= (rec.varianceCents / 100).toLocaleString('en-AU', { minimumFractionDigits: 2 }) %>
+              </td>
+              <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.08);text-align:center;">
+                <span class="pill pill-warn">Disputed</span>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% } %>

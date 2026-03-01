@@ -1,0 +1,250 @@
+<% layout("layouts/main") %>
+
+<style>
+  /* =========================
+     Users & Invites (scoped)
+     ========================= */
+  .usrPage {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+  }
+
+  @media (max-width: 980px) {
+    .usrPage { width: 95%; }
+  }
+
+  .usrHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .usrHeader h1 { margin: 0; }
+  .usrHeader p { margin-top: 6px; }
+
+  .usrGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 14px;
+  }
+
+  @media (max-width: 980px) {
+    .usrGrid { grid-template-columns: 1fr; }
+  }
+
+  .panel.usrPanel { padding: 18px; }
+
+  .usrSectionTitle {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 800;
+    color: #0f172a;
+  }
+
+  .usrSectionHint {
+    margin-top: 6px;
+    color: rgba(15, 23, 42, 0.65);
+    font-size: 13px;
+  }
+
+  .usrTableWrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 16px;
+  }
+
+  .usrTable {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 720px;
+  }
+
+  .usrTable thead th {
+    text-align: left !important;
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    color: rgba(15, 23, 42, 0.65);
+    font-weight: 800;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    white-space: nowrap;
+  }
+
+  .usrTable tbody td {
+    text-align: left !important;
+    vertical-align: top;
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+  }
+
+  .usrTable tbody tr:hover td {
+    background: rgba(255,255,255,0.55);
+  }
+
+  .usrMono {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  .usrForm {
+    display: grid;
+    gap: 10px;
+  }
+
+  .usrLabel {
+    font-size: 12px;
+    font-weight: 800;
+    color: rgba(15, 23, 42, 0.65);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  .usrSelect {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #fff;
+    color: #0f172a;
+    border: 1px solid rgba(0,0,0,0.12);
+  }
+
+  .usrCheckbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+  }
+</style>
+
+<div class="usrPage">
+  <div class="usrHeader">
+    <div>
+      <h1>Users & Invites</h1>
+      <p class="muted">Invite admins, investors, or pre-investors and track invite status.</p>
+    </div>
+  </div>
+
+  <div class="usrGrid">
+    <div class="panel usrPanel">
+      <h3 class="usrSectionTitle">Invite user</h3>
+      <div class="usrSectionHint">Invite link expires in <%= process.env.INVITE_TTL_HOURS || 72 %> hours.</div>
+
+      <form method="post" action="/admin/users/invite" class="usrForm" style="margin-top:12px;">
+        <div>
+          <div class="usrLabel">Email</div>
+          <input name="email" type="email" required />
+        </div>
+
+        <div>
+          <div class="usrLabel">Role</div>
+          <select id="invite-role" name="role" class="usrSelect">
+            <option value="PREINVESTOR">Pre-Investor</option>
+            <option value="INVESTOR">Investor</option>
+            <option value="ADMIN">Admin</option>
+          </select>
+        </div>
+
+        <div id="treasury-access" class="usrCheckbox">
+          <input type="checkbox" name="canViewTreasury" value="true" />
+          Treasury access (admins only)
+        </div>
+
+        <div>
+          <button class="btn btn-primary" type="submit">Send invite</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="panel usrPanel">
+      <h3 class="usrSectionTitle">Invites</h3>
+      <div class="usrSectionHint">Most recent invites are listed first.</div>
+
+      <% if (!invites || !invites.length) { %>
+        <p class="muted" style="margin-top:12px;">No invites yet.</p>
+      <% } else { %>
+        <div class="usrTableWrap" style="margin-top:12px;">
+          <table class="usrTable">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Treasury</th>
+                <th>Expires</th>
+                <th>Used</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% invites.forEach(i => { %>
+                <tr>
+                  <td><%= i.email %></td>
+                  <td><%= i.role %></td>
+                  <td><%= i.role === "ADMIN" ? (i.canViewTreasury ? "Yes" : "No") : "-" %></td>
+                  <td class="usrMono"><%= new Date(i.expiresAt).toISOString() %></td>
+                  <td><%= i.usedAt ? "Yes" : "No" %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="panel usrPanel" style="margin-top: 14px;">
+    <h3 class="usrSectionTitle">Users</h3>
+    <div class="usrSectionHint">Showing the most recently created accounts.</div>
+
+    <% if (!users || !users.length) { %>
+      <p class="muted" style="margin-top:12px;">No users yet.</p>
+    <% } else { %>
+      <div class="usrTableWrap" style="margin-top:12px;">
+        <table class="usrTable">
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Treasury</th>
+              <th>Active</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% users.forEach(u => { %>
+              <tr>
+                <td><%= u.email %></td>
+                <td><%= u.role %></td>
+                <td><%= u.role === "ADMIN" ? (u.canViewTreasury ? "Yes" : "No") : "-" %></td>
+                <td><%= u.isActive ? "Yes" : "No" %></td>
+                <td class="usrMono"><%= new Date(u.createdAt).toISOString().slice(0,10) %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const roleSelect = document.getElementById("invite-role");
+    const treasuryWrap = document.getElementById("treasury-access");
+
+    function syncTreasuryVisibility() {
+      if (!roleSelect || !treasuryWrap) return;
+      const show = roleSelect.value === "ADMIN";
+      treasuryWrap.style.display = show ? "flex" : "none";
+    }
+
+    if (roleSelect) {
+      roleSelect.addEventListener("change", syncTreasuryVisibility);
+      syncTreasuryVisibility();
+    }
+  })();
+</script>

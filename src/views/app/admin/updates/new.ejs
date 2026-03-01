@@ -1,0 +1,47 @@
+<% layout("layouts/main") %>
+
+<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+  <div>
+    <h1 style="margin:0;">Create update</h1>
+    <div class="muted" style="margin-top:6px;">Draft an update, then publish to distribute via email.</div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <a class="btn btn-secondary" href="/admin/updates">← Updates</a>
+  </div>
+</div>
+
+<div class="panel" style="margin-top:14px;max-width:980px;">
+  <form method="post" action="/admin/updates">
+    <label>Title</label>
+    <input name="title" required />
+
+    <label>Type</label>
+    <select name="typeId" class="input">
+      <% types.forEach(t => { %>
+        <option value="<%= t.id %>"><%= t.name %></option>
+      <% }) %>
+    </select>
+
+    <label>Visibility</label>
+    <select name="visibility" class="input">
+      <option value="PORTAL_ALL">Portal (Investors + Pre-Investors)</option>
+      <option value="INVESTOR_ONLY">Investor only</option>
+    </select>
+
+    <label>Body (optional — can be blank for PDF-only distribution)</label>
+    <textarea name="bodyHtml" rows="10" class="input"></textarea>
+
+    <label class="checkbox" style="margin-top:10px;">
+      <input type="checkbox" name="isPdfDistribution" />
+      This update requires a PDF attachment before publishing
+    </label>
+
+    <label style="margin-top:10px;">Tags (comma separated)</label>
+    <input name="tags" placeholder="e.g., FY26, Metrics, Compliance" />
+
+    <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <button class="btn btn-primary" type="submit">Create update</button>
+      <span class="muted small">After creation, you’ll add attachments and publish.</span>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,66 @@
+<% layout("layouts/main") %>
+
+<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+  <div>
+    <h1 style="margin:0;">Audit Log</h1>
+    <div class="muted" style="margin-top:6px;">Search actions by event type and actor email.</div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <a class="btn btn-secondary" href="/admin">← Admin</a>
+  </div>
+</div>
+
+<div class="panel" style="margin-top:14px;">
+  <form method="get" action="/admin/audit" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">
+    <div style="min-width:260px;">
+      <label>Action</label>
+      <input name="action" value="<%= filters.action %>" placeholder="e.g., UPDATE_PUBLISHED" />
+    </div>
+    <div style="min-width:260px;">
+      <label>Actor email</label>
+      <input name="actor" value="<%= filters.actorEmail %>" placeholder="admin@..." />
+    </div>
+    <button class="btn btn-secondary" type="submit">Filter</button>
+  </form>
+</div>
+
+<div class="panel" style="margin-top:14px;overflow:auto;">
+  <table style="width:100%;border-collapse:collapse;min-width:980px;">
+    <thead>
+      <tr>
+        <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Time</th>
+        <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Action</th>
+        <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Actor</th>
+        <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Target</th>
+        <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">IP</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (!logs || logs.length === 0) { %>
+        <tr>
+          <td colspan="5" style="padding:12px;" class="muted">No audit entries found.</td>
+        </tr>
+      <% } %>
+
+      <% logs.forEach(l => { %>
+        <tr>
+          <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.06);" class="muted">
+            <%= new Date(l.createdAt).toLocaleString() %>
+          </td>
+          <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.06);font-weight:800;">
+            <%= l.action %>
+          </td>
+          <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.06);" class="muted">
+            <%= l.actor ? l.actor.email : "-" %>
+          </td>
+          <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.06);" class="muted">
+            <%= (l.targetType || "-") + ":" + (l.targetId || "-") %>
+          </td>
+          <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.06);" class="muted">
+            <%= l.ip || "-" %>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>

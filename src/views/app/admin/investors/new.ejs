@@ -1,0 +1,234 @@
+<% layout("layouts/main") %>
+
+<%
+  const safeRole = (typeof role !== "undefined" && role) ? String(role) : "INVESTOR";
+  const isInvestor = safeRole === "INVESTOR";
+  const isPre = safeRole === "PREINVESTOR";
+%>
+
+<div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;">
+  <div>
+    <h1 style="margin:0;"><%= isInvestor ? "Add Investor" : "Add Pre-investor" %></h1>
+    <p class="muted" style="margin-top:6px;">
+      Create an account and send an invite link to set a password.
+      <% if (isInvestor) { %>
+        Investors also include shareholding + registered address details.
+      <% } %>
+    </p>
+  </div>
+
+  <div style="display:flex; gap:10px; flex-wrap:wrap;">
+    <a class="btn btn-secondary" href="/admin/investors">← Back</a>
+  </div>
+</div>
+
+<div class="panel" style="margin-top: 14px;">
+  <form method="post" action="/admin/investors" autocomplete="off">
+    <input type="hidden" name="role" value="<%= safeRole %>" />
+
+    <h3 style="margin:0 0 10px;">Login & Contact</h3>
+
+    <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
+      <div>
+        <label>Email (login)</label>
+        <input class="input" type="email" name="contactEmail" required placeholder="name@company.com" />
+        <div class="muted small" style="margin-top:6px;">
+          This becomes the user’s login email and where the invite is sent.
+        </div>
+      </div>
+
+      <div>
+        <label>Name (required)</label>
+        <input class="input" type="text" name="contactFirstName" required placeholder="First name (or full name)" />
+        <div class="muted small" style="margin-top:6px;">
+          This is saved as the account “Name”. It is not optional.
+        </div>
+      </div>
+
+      <div>
+        <label>Last name (optional)</label>
+        <input class="input" type="text" name="contactLastName" placeholder="Last name" />
+      </div>
+
+      <div>
+        <label>Phone (optional)</label>
+        <input class="input" type="text" name="contactPhone" placeholder="+61..." />
+      </div>
+    </div>
+
+    <% if (isPre) { %>
+      <hr style="border:none; border-top:1px solid rgba(0,0,0,0.08); margin: 16px 0;" />
+
+      <h3 style="margin:0 0 10px;">Pre-investor instrument (optional)</h3>
+
+      <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
+        <div>
+          <label>Instrument type</label>
+          <select class="input" name="preInvestorInstrument" id="preInvestorInstrument">
+            <option value="NONE" selected>Standard (no instrument)</option>
+            <option value="SAFE">SAFE</option>
+            <option value="NOTE">Convertible Note</option>
+          </select>
+          <div class="muted small" style="margin-top:6px;">If SAFE/NOTE is selected and Purchase Amount is provided, an instrument record will be created and assigned a reference ID.</div>
+        </div>
+
+        <div>
+          <label>Internal notes (optional)</label>
+          <input class="input" type="text" name="preInvestorNotes" placeholder="Private notes..." />
+        </div>
+
+        <div class="instFields" style="display:none;">
+          <label>Signed date</label>
+          <input class="input" type="date" name="instrumentSignedAt" />
+        </div>
+
+        <div class="instFields" style="display:none;">
+          <label>Purchase amount (AUD)</label>
+          <input class="input" type="number" name="instrumentPurchaseAmount" min="0" step="0.01" placeholder="25000.00" />
+        </div>
+
+        <div class="instFields" style="display:none;">
+          <label>Discount % (optional)</label>
+          <input class="input" type="number" name="instrumentDiscountPercent" min="0" max="100" step="1" placeholder="20" />
+        </div>
+
+        <div class="instFields" style="display:none;">
+          <label>Status</label>
+          <select class="input" name="instrumentStatus">
+            <option value="OUTSTANDING" selected>OUTSTANDING</option>
+            <option value="CONVERTED">CONVERTED</option>
+            <option value="CANCELLED">CANCELLED</option>
+          </select>
+        </div>
+
+        <div class="instFields" style="display:none; grid-column: 1 / -1;">
+          <label>Instrument notes (optional)</label>
+          <input class="input" type="text" name="instrumentNotes" placeholder="E.g. Discount-only SAFE (F&F)" />
+        </div>
+      </div>
+    <% } %>
+
+    <% if (isInvestor) { %>
+      <hr style="border:none; border-top:1px solid rgba(0,0,0,0.08); margin: 16px 0;" />
+      <h3 style="margin:0 0 10px;">Shareholding</h3>
+
+      <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
+        <div>
+          <label>Shareholding type</label>
+          <select class="input" name="shareholdingType" required>
+            <option value="INDIVIDUAL" selected>INDIVIDUAL</option>
+            <option value="BUSINESS">BUSINESS</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Business name (if BUSINESS)</label>
+          <input class="input" type="text" name="businessName" placeholder="Entity / trustee / fund name" />
+        </div>
+
+        <div>
+          <label>Total shares</label>
+          <input class="input" type="number" name="sharesTotal" min="0" step="1" required value="0" />
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 120px; gap: 10px;">
+          <div>
+            <label>Price per share</label>
+            <input class="input" type="text" name="pricePerShare" required value="0" />
+          </div>
+          <div>
+            <label>Currency</label>
+            <input class="input" type="text" name="currency" maxlength="3" required value="AUD" />
+          </div>
+        </div>
+
+        <div>
+          <label>Unpaid per share (optional)</label>
+          <input class="input" type="text" name="unpaidPerShare" placeholder="0.00" />
+        </div>
+      </div>
+
+      <hr style="border:none; border-top:1px solid rgba(0,0,0,0.08); margin: 16px 0;" />
+
+      <h3 style="margin:0 0 10px;">Registered Address</h3>
+
+      <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 14px;">
+        <div style="grid-column: 1 / -1;">
+          <label>Address line 1</label>
+          <input class="input" type="text" name="addressLine1" required placeholder="Street address" />
+        </div>
+
+        <div style="grid-column: 1 / -1;">
+          <label>Address line 2 (optional)</label>
+          <input class="input" type="text" name="addressLine2" placeholder="Apartment / suite / level" />
+        </div>
+
+        <div>
+          <label>Suburb / City</label>
+          <input class="input" type="text" name="suburbOrCity" required />
+        </div>
+
+        <div>
+          <label>State / Region (optional)</label>
+          <input class="input" type="text" name="stateOrRegion" placeholder="WA / NSW / ..." />
+        </div>
+
+        <div>
+          <label>Postcode (optional)</label>
+          <input class="input" type="text" name="postcode" placeholder="6000" />
+        </div>
+
+        <div>
+          <label>Country</label>
+          <input class="input" type="text" name="country" maxlength="2" required value="AU" />
+        </div>
+      </div>
+    <% } %>
+
+    <hr style="border:none; border-top:1px solid rgba(0,0,0,0.08); margin: 16px 0;" />
+
+    <div class="muted small">
+      <strong>Note:</strong> Submitting this will attempt to send an invite email. If your SMTP/SES config isn’t set,
+      the server may error even though the user record was created. (We can make invite-sending non-blocking if you want.)
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top: 16px; flex-wrap:wrap;">
+      <a class="btn btn-secondary" href="/admin/investors">Cancel</a>
+      <button class="btn btn-primary" type="submit">
+        Create <%= isInvestor ? "Investor" : "Pre-investor" %> & Send Invite
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+  (function () {
+    const sel = document.querySelector('select[name="shareholdingType"]');
+    const businessName = document.querySelector('input[name="businessName"]');
+
+    function syncBusiness() {
+      if (!sel || !businessName) return;
+      const isBusiness = sel.value === "BUSINESS";
+      businessName.disabled = !isBusiness;
+      businessName.placeholder = isBusiness ? "Entity / trustee / fund name" : "Not required for INDIVIDUAL";
+      businessName.style.opacity = isBusiness ? "1" : "0.6";
+    }
+
+    if (sel) {
+      sel.addEventListener("change", syncBusiness);
+      syncBusiness();
+    }
+
+    const instSel = document.getElementById("preInvestorInstrument");
+    const instFields = document.querySelectorAll(".instFields");
+    function syncInstrument() {
+      if (!instSel) return;
+      const on = instSel.value === "SAFE" || instSel.value === "NOTE";
+      instFields.forEach(el => el.style.display = on ? "" : "none");
+    }
+    if (instSel) {
+      instSel.addEventListener("change", syncInstrument);
+      syncInstrument();
+    }
+  })();
+</script>

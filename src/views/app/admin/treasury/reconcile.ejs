@@ -1,0 +1,237 @@
+<% layout("layouts/main") %>
+
+<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+  <div>
+    <h1 style="margin:0;">Transaction Reconciliation</h1>
+    <div class="muted" style="margin-top:6px;">Match bank transactions with investor payments and instruments.</div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <a class="btn btn-secondary" href="/admin/treasury">← Treasury</a>
+    <a class="btn btn-primary" href="/admin/treasury/reports">View Reports</a>
+  </div>
+</div>
+
+<div class="panel" style="margin-top:14px;">
+  <h3 style="margin:0 0 10px;">Select Account</h3>
+  <form method="get" action="/admin/treasury/reconcile" style="display:flex;gap:10px;align-items:end;">
+    <div style="flex:1;max-width:400px;">
+      <label>Bank Account</label>
+      <select name="accountId" required onchange="this.form.submit()">
+        <option value="">-- Select Account --</option>
+        <% accounts.forEach(account => { %>
+          <option value="<%= account.id %>" <%= selectedAccount && selectedAccount.id === account.id ? 'selected' : '' %>>
+            <%= account.accountName %> (<%= account.institution %>)
+          </option>
+        <% }); %>
+      </select>
+    </div>
+  </form>
+</div>
+
+<% if (selectedAccount && unreconciledTransactions.length > 0) { %>
+  <div style="margin-top:14px;">
+    <h3 style="margin:0 0 10px;">Unreconciled Transactions (<%= unreconciledTransactions.length %>)</h3>
+    
+    <div style="display:grid;gap:14px;">
+      <% unreconciledTransactions.forEach(txn => { %>
+        <div class="panel" style="border-left:4px solid #f59e0b;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <!-- Transaction Details -->
+            <div>
+              <h4 style="margin:0 0 8px;">Transaction Details</h4>
+              <div style="display:grid;gap:8px;">
+                <div>
+                  <div class="muted small">Description</div>
+                  <div style="font-weight:600;"><%= txn.description %></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                  <div>
+                    <div class="muted small">Amount</div>
+                    <div style="font-weight:700;font-size:18px;color:#10b981;">
+                      <%= selectedAccount.currency %> <%= (txn.amountCents / 100).toLocaleString('en-AU', { minimumFractionDigits: 2 }) %>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="muted small">Date</div>
+                    <div style="font-weight:600;"><%= new Date(txn.transactionDate).toLocaleDateString('en-AU') %></div>
+                  </div>
+                </div>
+                <% if (txn.reference) { %>
+                  <div>
+                    <div class="muted small">Reference</div>
+                    <div><%= txn.reference %></div>
+                  </div>
+                <% } %>
+              </div>
+            </div>
+
+            <!-- Reconciliation Form -->
+            <div>
+              <h4 style="margin:0 0 8px;">Reconcile with Investor</h4>
+              <form onsubmit="reconcileTransaction(event, '<%= txn.id %>')">
+                <div style="display:grid;gap:10px;">
+                  <div>
+                    <label>Investor</label>
+                    <select name="investorId" id="investor-<%= txn.id %>" required onchange="updateInvestorInfo('<%= txn.id %>')">
+                      <option value="">-- Select Investor --</option>
+                      <% investors.forEach(investor => { %>
+                        <option 
+                          value="<%= investor.id %>"
+                          data-instruments='<%- JSON.stringify(investor.investorInstruments) %>'
+                          data-shareholding='<%- investor.shareholdingProfile ? JSON.stringify(investor.shareholdingProfile) : "null" %>'
+                        >
+                          <%= investor.email %> <%= investor.name ? `(${investor.name})` : '' %>
+                        </option>
+                      <% }); %>
+                    </select>
+                  </div>
+
+                  <div id="investor-info-<%= txn.id %>" style="display:none;padding:10px;background:rgba(0,151,117,0.08);border-radius:8px;font-size:13px;">
+                    <!-- Populated dynamically -->
+                  </div>
+
+                  <div>
+                    <label>Expected Amount (cents)</label>
+                    <input type="number" name="expectedAmountCents" id="expected-<%= txn.id %>" required placeholder="e.g., 500000 for $5,000.00" />
+                    <div class="muted small" style="margin-top:4px;">Enter amount in cents (multiply by 100)</div>
+                  </div>
+
+                  <div>
+                    <label>Instrument (optional)</label>
+                    <select name="instrumentId" id="instrument-<%= txn.id %>">
+                      <option value="">-- No instrument --</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label>Notes (optional)</label>
+                    <textarea name="notes" rows="2" placeholder="Add any notes about this reconciliation..."></textarea>
+                  </div>
+
+                  <button type="submit" class="btn btn-primary">Reconcile Transaction</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+  </div>
+<% } else if (selectedAccount) { %>
+  <div class="panel" style="margin-top:14px;text-align:center;padding:40px;">
+    <p style="font-size:18px;margin:0 0 8px;">✅ All transactions reconciled</p>
+    <p class="muted">No unreconciled credit transactions found for this account.</p>
+  </div>
+<% } %>
+
+<script>
+function updateInvestorInfo(txnId) {
+  const select = document.getElementById(`investor-${txnId}`);
+  const infoDiv = document.getElementById(`investor-info-${txnId}`);
+  const instrumentSelect = document.getElementById(`instrument-${txnId}`);
+  const expectedInput = document.getElementById(`expected-${txnId}`);
+  
+  const option = select.options[select.selectedIndex];
+  
+  if (!option.value) {
+    infoDiv.style.display = 'none';
+    instrumentSelect.innerHTML = '<option value="">-- No instrument --</option>';
+    return;
+  }
+  
+  const instruments = JSON.parse(option.dataset.instruments || '[]');
+  const shareholding = JSON.parse(option.dataset.shareholding || 'null');
+  
+  // Populate instruments dropdown
+  instrumentSelect.innerHTML = '<option value="">-- No instrument --</option>';
+  instruments.forEach(inst => {
+    const option = document.createElement('option');
+    option.value = inst.id;
+    option.textContent = `${inst.instrumentRef} - ${inst.currency} ${(inst.purchaseAmountCents / 100).toLocaleString('en-AU')}`;
+    option.dataset.amount = inst.purchaseAmountCents;
+    instrumentSelect.appendChild(option);
+  });
+  
+  // Show investor info
+  let html = '<div style="margin-bottom:8px;"><strong>Investor Information:</strong></div>';
+  
+  if (instruments.length > 0) {
+    html += '<div style="margin-bottom:6px;"><strong>Instruments:</strong></div><ul style="margin:0;padding-left:20px;">';
+    instruments.forEach(inst => {
+      html += `<li>${inst.instrumentRef}: ${inst.currency} ${(inst.purchaseAmountCents / 100).toLocaleString('en-AU', {minimumFractionDigits: 2})}</li>`;
+    });
+    html += '</ul>';
+  }
+  
+  if (shareholding) {
+    const totalValue = shareholding.sharesTotal * parseFloat(shareholding.pricePerShare);
+    html += `<div style="margin-top:8px;"><strong>Shareholding:</strong> ${shareholding.sharesTotal} shares @ ${shareholding.currency} ${parseFloat(shareholding.pricePerShare).toFixed(6)}</div>`;
+    html += `<div><strong>Total Value:</strong> ${shareholding.currency} ${totalValue.toLocaleString('en-AU', {minimumFractionDigits: 2})}</div>`;
+  }
+  
+  infoDiv.innerHTML = html;
+  infoDiv.style.display = 'block';
+}
+
+// Auto-fill amount when instrument is selected
+document.querySelectorAll('[id^="instrument-"]').forEach(select => {
+  select.addEventListener('change', function() {
+    const txnId = this.id.replace('instrument-', '');
+    const expectedInput = document.getElementById(`expected-${txnId}`);
+    const option = this.options[this.selectedIndex];
+    
+    if (option.dataset.amount) {
+      expectedInput.value = option.dataset.amount;
+    }
+  });
+});
+
+async function reconcileTransaction(event, txnId) {
+  event.preventDefault();
+  
+  const form = event.target;
+  const formData = new FormData(form);
+  
+  const data = {
+    transactionId: txnId,
+    investorId: formData.get('investorId'),
+    expectedAmountCents: parseInt(formData.get('expectedAmountCents')),
+    instrumentId: formData.get('instrumentId') || null,
+    shareholdingId: null, // Can be added if needed
+    notes: formData.get('notes') || null,
+  };
+  
+  const submitBtn = form.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Processing...';
+  
+  try {
+    const response = await fetch('/admin/treasury/reconcile', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      if (result.reconciliation.status === 'RECONCILED') {
+        alert('✅ Transaction reconciled successfully!');
+      } else if (result.reconciliation.status === 'DISPUTED') {
+        alert('⚠️ Transaction marked as disputed due to amount variance. Please review.');
+      }
+      window.location.reload();
+    } else {
+      alert('Failed to reconcile: ' + (result.error || 'Unknown error'));
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Reconcile Transaction';
+    }
+  } catch (error) {
+    alert('Failed to reconcile: ' + error.message);
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Reconcile Transaction';
+  }
+}
+</script>

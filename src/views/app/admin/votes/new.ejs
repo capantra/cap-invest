@@ -1,0 +1,32 @@
+<% layout("layouts/main") %>
+
+<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+  <div>
+    <h1 style="margin:0;">Create vote request</h1>
+    <div class="muted" style="margin-top:6px;">Request a formal vote from investors.</div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <a class="btn btn-secondary" href="/admin/votes">← Voting</a>
+  </div>
+</div>
+
+<div class="panel" style="margin-top:14px;max-width:980px;">
+  <form method="post" action="/admin/votes" enctype="multipart/form-data">
+    <label>Title</label>
+    <input name="title" required placeholder="e.g., Approve IPO" />
+
+    <label>Description</label>
+    <textarea name="description" rows="6" class="input" placeholder="Explain what investors are voting on."></textarea>
+
+    <label>Closes at (optional)</label>
+    <input name="closesAt" type="datetime-local" />
+
+    <label style="margin-top:10px;">Attachments (optional)</label>
+    <input name="files" type="file" multiple />
+
+    <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <button class="btn btn-primary" type="submit">Create vote request</button>
+      <span class="muted small">You can add more attachments after creating the request.</span>
+    </div>
+  </form>
+</div>

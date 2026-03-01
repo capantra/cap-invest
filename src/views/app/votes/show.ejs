@@ -1,0 +1,65 @@
+<% layout("layouts/main") %>
+
+<a class="btn btn-secondary" href="/votes">← Back</a>
+
+<div class="panel" style="margin-top: 12px;">
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+    <h1 style="margin:0;"><%= voteRequest.title %></h1>
+    <% if (voteRequest.status === "OPEN") { %>
+      <span class="pill pill-ok">Open</span>
+    <% } else { %>
+      <span class="pill pill-warn">Closed</span>
+    <% } %>
+  </div>
+
+  <% if (voteRequest.description) { %>
+    <div style="margin-top:12px;white-space:pre-wrap;"><%= voteRequest.description %></div>
+  <% } %>
+
+  <% if (voteRequest.attachments && voteRequest.attachments.length) { %>
+    <div style="margin-top:18px;">
+      <h3>Attachments</h3>
+      <% voteRequest.attachments.forEach(a => { %>
+        <div style="margin-bottom:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div>
+              <strong><%= a.fileName %></strong>
+              <div class="muted"><%= a.mimeType %> • <%= Math.round((a.sizeBytes || 0) / 1024) %> KB</div>
+            </div>
+            <a class="btn btn-secondary" href="/vote-attachments/<%= encodeURIComponent(a.storageKey) %>" target="_blank" rel="noreferrer">Open</a>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+</div>
+
+<div class="panel" style="margin-top: 14px;">
+  <% if (existingResponse) { %>
+    <h3>Your vote</h3>
+    <div class="muted" style="margin-top:6px;">Submitted <%= new Date(existingResponse.createdAt).toLocaleString() %></div>
+    <div style="margin-top:10px;font-weight:800;">Choice: <%= existingResponse.choice %></div>
+    <div class="muted" style="margin-top:6px;">Legal name: <%= existingResponse.legalName %></div>
+  <% } else if (voteRequest.status !== "OPEN") { %>
+    <p class="muted">Voting is closed.</p>
+  <% } else { %>
+    <h3>Cast your vote</h3>
+    <p class="muted" style="margin-top:6px;">Your IP address will be recorded and you must enter your legal name.</p>
+
+    <form method="post" action="/votes/<%= voteRequest.id %>" style="margin-top:12px;max-width:520px;">
+      <label>Choice</label>
+      <select name="choice" class="input" required>
+        <option value="FOR">In favour</option>
+        <option value="AGAINST">Against</option>
+        <option value="ABSTAIN">Abstain</option>
+      </select>
+
+      <label style="margin-top:10px;">Full legal name</label>
+      <input name="legalName" required />
+
+      <div style="margin-top:12px;">
+        <button class="btn btn-primary" type="submit">Submit vote</button>
+      </div>
+    </form>
+  <% } %>
+</div>

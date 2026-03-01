@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Verify</title>
+  <link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body class="center">
+  <div class="publicWrap">
+    <div class="card">
+      <h1>Verify</h1>
+      <p class="muted">Enter the 6-digit code sent to your email.</p>
+
+      <% if (flash) { %>
+        <div class="flash <%= flash.type %>"><%= flash.message %></div>
+      <% } %>
+
+      <form method="post" action="/login/otp">
+        <label>Verification code</label>
+        <input name="otp" inputmode="numeric" autocomplete="one-time-code" required />
+
+        <div style="margin-top:12px;">
+          <button class="btn btn-primary" type="submit">Verify</button>
+        </div>
+      </form>
+
+      <p class="muted small" style="margin-top:12px;">If you didn’t receive a code, try logging in again.</p>
+    </div>
+
+    <div class="publicFooter">
+      © <%= new Date().getFullYear() %> Capantra. All rights reserved.
+    </div>
+  </div>
+</body>
+</html>

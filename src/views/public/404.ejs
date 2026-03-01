@@ -1,0 +1,17 @@
+<% layout("layouts/main") %>
+
+<div class="panel" style="max-width:720px; margin: 0 auto;">
+  <h1 style="margin:0;">Not found</h1>
+  <p class="muted" style="margin-top:8px;">
+    The page you’re looking for doesn’t exist (or you don’t have access).
+  </p>
+
+  <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+    <% if (typeof user !== "undefined" && user) { %>
+      <a class="btn btn-primary" href="/dashboard">Go to dashboard</a>
+    <% } else { %>
+      <a class="btn btn-primary" href="/login">Go to login</a>
+    <% } %>
+    <a class="btn btn-secondary" href="javascript:history.back()">Go back</a>
+  </div>
+</div>

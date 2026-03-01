@@ -1,0 +1,145 @@
+<% layout("layouts/main") %>
+
+<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+  <div>
+    <h1 style="margin:0;">Treasury Management</h1>
+    <div class="muted" style="margin-top:6px;">View bank accounts, sync transactions, and reconcile investor payments.</div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <a class="btn btn-secondary" href="/admin">← Admin</a>
+    <a class="btn btn-secondary" href="/admin/treasury/reconcile">Reconcile Transactions</a>
+    <a class="btn btn-primary" href="/admin/treasury/reports">View Reports</a>
+  </div>
+</div>
+
+<% if (!accounts || accounts.length === 0) { %>
+  <div class="panel" style="margin-top:14px;text-align:center;padding:40px;">
+    <div style="font-size:48px;margin-bottom:16px;">🏦</div>
+    <p style="font-size:18px;font-weight:600;margin:0 0 8px;">No treasury accounts connected yet</p>
+    <p class="muted">Connect your Macquarie bank accounts to get started.</p>
+    <div style="margin-top:20px;">
+      <a href="/admin/treasury/setup" class="btn btn-primary">Connect Bank Accounts</a>
+    </div>
+    <div class="muted small" style="margin-top:14px;">
+      You'll need your Macquarie Bank login credentials to complete the connection.
+    </div>
+  </div>
+<% } else { %>
+  <div style="display:grid;gap:14px;margin-top:14px;">
+    <% accounts.forEach(account => { %>
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;">
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+              <h3 style="margin:0;"><%= account.accountName %></h3>
+              <% if (account.isActive) { %>
+                <span class="pill pill-ok">Active</span>
+              <% } else { %>
+                <span class="pill pill-warn">Inactive</span>
+              <% } %>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:10px;">
+              <div>
+                <div class="muted small">Institution</div>
+                <div style="font-weight:600;"><%= account.institution || 'N/A' %></div>
+              </div>
+              <div>
+                <div class="muted small">Account Type</div>
+                <div style="font-weight:600;"><%= account.accountType || 'N/A' %></div>
+              </div>
+              <div>
+                <div class="muted small">BSB</div>
+                <div style="font-weight:600;"><%= account.bsb || 'N/A' %></div>
+              </div>
+              <div>
+                <div class="muted small">Account Number</div>
+                <div style="font-weight:600;"><%= account.accountNumber || 'N/A' %></div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:14px;padding-top:14px;border-top:1px solid rgba(0,0,0,0.08);">
+              <div>
+                <div class="muted small">Current Balance</div>
+                <div style="font-weight:700;font-size:18px;">
+                  <%= account.currency %> <%= (account.currentBalanceCents / 100).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %>
+                </div>
+              </div>
+              <div>
+                <div class="muted small">Available Balance</div>
+                <div style="font-weight:700;font-size:18px;">
+                  <%= account.currency %> <%= (account.availableBalanceCents / 100).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %>
+                </div>
+              </div>
+              <div>
+                <div class="muted small">Total Transactions</div>
+                <div style="font-weight:700;font-size:18px;"><%= account.stats.totalTransactions %></div>
+              </div>
+              <div>
+                <div class="muted small">Unreconciled</div>
+                <div style="font-weight:700;font-size:18px;color:<%= account.stats.unreconciledCount > 0 ? '#f59e0b' : '#10b981' %>;">
+                  <%= account.stats.unreconciledCount %>
+                </div>
+              </div>
+            </div>
+
+            <% if (account.lastSyncedAt) { %>
+              <div class="muted small" style="margin-top:10px;">
+                Last synced: <%= new Date(account.lastSyncedAt).toLocaleString('en-AU') %>
+              </div>
+            <% } %>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button 
+              class="btn btn-primary" 
+              onclick="syncAccount('<%= account.id %>')"
+              id="sync-btn-<%= account.id %>"
+            >
+              Sync Transactions
+            </button>
+            <a class="btn btn-secondary" href="/admin/treasury/accounts/<%= account.id %>">
+              View Transactions
+            </a>
+            <a class="btn btn-secondary" href="/admin/treasury/reconcile?accountId=<%= account.id %>">
+              Reconcile
+            </a>
+          </div>
+        </div>
+      </div>
+    <% }); %>
+  </div>
+<% } %>
+
+<script>
+async function syncAccount(accountId) {
+  const btn = document.getElementById(`sync-btn-${accountId}`);
+  const originalText = btn.textContent;
+  
+  btn.disabled = true;
+  btn.textContent = 'Syncing...';
+  
+  try {
+    const response = await fetch(`/admin/treasury/sync/${accountId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      alert(`Successfully synced ${data.syncedCount} transactions`);
+      window.location.reload();
+    } else {
+      alert('Failed to sync transactions: ' + (data.error || 'Unknown error'));
+    }
+  } catch (error) {
+    alert('Failed to sync transactions: ' + error.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+</script>

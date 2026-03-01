@@ -1,0 +1,601 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  INVESTOR
+  PREINVESTOR
+}
+
+enum PreInvestorInstrument {
+  NONE
+  SAFE
+  NOTE
+}
+
+enum ShareholdingType {
+  INDIVIDUAL
+  BUSINESS
+}
+
+enum UpdateVisibility {
+  PORTAL_ALL
+  INVESTOR_ONLY
+}
+
+enum VoteStatus {
+  OPEN
+  CLOSED
+}
+
+enum VoteChoice {
+  FOR
+  AGAINST
+  ABSTAIN
+}
+
+enum OtpPurpose {
+  LOGIN_2FA
+}
+
+enum EmailAudienceMode {
+  ALL
+  INVESTORS
+  PREINVESTORS
+  SELECTED
+}
+
+enum EmailRecipientStatus {
+  QUEUED
+  SENT
+  FAILED
+  BOUNCED
+  COMPLAINED
+}
+
+/* ==============================
+   NEW: Instrument enums
+   ============================== */
+enum InvestorInstrumentType {
+  SAFE
+  NOTE
+}
+
+enum InvestorInstrumentStatus {
+  OUTSTANDING
+  CONVERTED
+  CANCELLED
+}
+
+/* ==============================
+   Treasury & Bank Reconciliation
+   ============================== */
+enum BankAccountProvider {
+  BASIQ
+}
+
+enum TransactionReconciliationStatus {
+  UNRECONCILED
+  RECONCILED
+  DISPUTED
+}
+
+enum TransactionType {
+  CREDIT
+  DEBIT
+}
+
+/* ==============================
+   Shareholding Profile
+   ============================== */
+model ShareholdingProfile {
+  userId           String          @id
+  shareholdingType ShareholdingType
+
+  // Contact (used for BOTH Individual & Business)
+  contactEmail     String?
+  contactPhone     String?
+  contactFirstName String?
+  contactLastName  String?
+
+  // Business-only (nullable for individuals)
+  businessName     String?
+
+  // Address (international, AU-friendly)
+  addressLine1     String
+  addressLine2     String?
+  suburbOrCity     String
+  stateOrRegion    String?
+  postcode         String?
+  country          String          @default("AU")
+
+  // Shareholding details
+  sharesTotal      Int             @default(0)
+  pricePerShare    Decimal         @db.Decimal(18, 6)
+  unpaidPerShare   Decimal?        @db.Decimal(18, 6)
+  currency         String          @default("AUD")
+
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([shareholdingType])
+  @@index([country])
+}
+
+/* ==============================
+   NEW: Investor Instruments
+   ============================== */
+model InvestorInstrument {
+  id                   String                    @id @default(uuid())
+
+  investorId           String
+  investor             User                      @relation(fields: [investorId], references: [id], onDelete: Cascade)
+
+  type                 InvestorInstrumentType
+  status               InvestorInstrumentStatus  @default(OUTSTANDING)
+
+  // Generated stable reference ID e.g. SAFE-2026-001
+  instrumentRef        String                    @unique
+
+  // Used for safe sequencing (avoids parsing string for logic)
+  refYear              Int
+  refSeq               Int
+
+  signedAt             DateTime
+
+  purchaseAmountCents  Int
+  currency             String                    @default("AUD")
+
+  // Discount percentage (integer 0–100). Optional.
+  discountPercent      Int?
+
+  convertedAt          DateTime?
+  notes                String?
+
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+
+  @@unique([type, refYear, refSeq]) // collision-proof sequencing
+  @@index([investorId, type])
+  @@index([status, signedAt])
+}
+
+/* ==============================
+   User
+   ============================== */
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  name            String?
+  role            UserRole
+  passwordHash    String?
+  isActive        Boolean   @default(true)
+  canViewTreasury Boolean   @default(false)
+  emailVerifiedAt DateTime?
+  lastLoginAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  updatesCreated Update[] @relation("UpdateCreator")
+
+  sessions        Session[]
+  otpCodes        EmailOtp[]
+  agreementAccept AgreementAcceptance[]
+  preferences     EmailPreference?
+  auditActor      AuditLog[]            @relation("AuditActor")
+  shareholdingProfile ShareholdingProfile?
+
+  preInvestorInstrument PreInvestorInstrument @default(NONE)
+  preInvestorNotes String?
+
+  // NEW: instruments (learned capital)
+  investorInstruments InvestorInstrument[]
+
+  messageRecipients MessageRecipient[]
+  campaignRecipients EmailCampaignRecipient[]
+  unsubscribeTokens  UnsubscribeToken[]
+  
+  // Treasury reconciliations
+  investorReconciliations TransactionReconciliation[] @relation("InvestorReconciliations")
+  reconciledTransactions  TransactionReconciliation[] @relation("ReconciliationActor")
+
+  voteRequestsCreated VoteRequest[] @relation("VoteCreator")
+  voteResponses VoteResponse[]
+}
+
+model Invite {
+  id        String    @id @default(uuid())
+  email     String
+  role      UserRole
+  canViewTreasury Boolean @default(false)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdBy String?
+  createdAt DateTime  @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
+}
+
+model Session {
+  id               String    @id @default(uuid())
+  userId           String
+  sessionTokenHash String    @unique
+  createdAt        DateTime  @default(now())
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  ip               String?
+  userAgent        String?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model EmailOtp {
+  id        String     @id @default(uuid())
+  userId    String
+  otpHash   String
+  purpose   OtpPurpose
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime   @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Agreement {
+  id          String   @id @default(uuid())
+  key         String
+  version     String
+  title       String
+  bodyHtml    String
+  sha256      String
+  effectiveAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  acceptances AgreementAcceptance[]
+
+  @@unique([key, version])
+  @@index([key, effectiveAt])
+}
+
+model AgreementAcceptance {
+  id          String   @id @default(uuid())
+  userId      String
+  agreementId String
+  acceptedAt  DateTime @default(now())
+  ip          String?
+  userAgent   String?
+
+  user      User      @relation(fields: [userId], references: [id])
+  agreement Agreement @relation(fields: [agreementId], references: [id])
+
+  @@unique([userId, agreementId])
+  @@index([userId])
+  @@index([agreementId])
+}
+
+model UpdateType {
+  id   String @id @default(uuid())
+  name String @unique
+
+  updates Update[]
+}
+
+model Update {
+  id                String           @id @default(uuid())
+  title             String
+  bodyHtml          String?
+  typeId            String
+  visibility        UpdateVisibility
+  isPdfDistribution Boolean          @default(false)
+  publishedAt       DateTime?
+  createdBy         String?
+  createdAt         DateTime         @default(now())
+
+  type        UpdateType   @relation(fields: [typeId], references: [id])
+  attachments Attachment[]
+  tags        UpdateTag[]
+
+  creator     User?        @relation("UpdateCreator", fields: [createdBy], references: [id])
+  
+
+  @@index([publishedAt])
+  @@index([visibility])
+  @@index([typeId])
+}
+
+model Tag {
+  id   String @id @default(uuid())
+  name String @unique
+
+  updates UpdateTag[]
+}
+
+model UpdateTag {
+  updateId String
+  tagId    String
+
+  update Update @relation(fields: [updateId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([updateId, tagId])
+}
+
+model Attachment {
+  id         String   @id @default(uuid())
+  updateId   String
+  storageKey String
+  fileName   String
+  mimeType   String
+  sizeBytes  Int
+  createdAt  DateTime @default(now())
+
+  update Update @relation(fields: [updateId], references: [id], onDelete: Cascade)
+
+  @@index([updateId])
+}
+
+model VoteRequest {
+  id           String     @id @default(uuid())
+  title        String
+  description  String?
+  status       VoteStatus @default(OPEN)
+  createdBy    String?
+  createdAt    DateTime   @default(now())
+  closesAt     DateTime?
+
+  creator      User? @relation("VoteCreator", fields: [createdBy], references: [id])
+  attachments  VoteAttachment[]
+  responses    VoteResponse[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model VoteAttachment {
+  id            String   @id @default(uuid())
+  voteRequestId String
+  storageKey    String
+  fileName      String
+  mimeType      String
+  sizeBytes     Int
+  createdAt     DateTime @default(now())
+
+  voteRequest VoteRequest @relation(fields: [voteRequestId], references: [id], onDelete: Cascade)
+
+  @@index([voteRequestId])
+}
+
+model VoteResponse {
+  id            String     @id @default(uuid())
+  voteRequestId String
+  userId        String
+  choice        VoteChoice
+  legalName     String
+  ip            String?
+  userAgent     String?
+  createdAt     DateTime   @default(now())
+
+  voteRequest VoteRequest @relation(fields: [voteRequestId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id])
+
+  @@unique([voteRequestId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  subject   String
+  bodyHtml  String
+  createdBy String?
+  createdAt DateTime @default(now())
+
+  recipients MessageRecipient[]
+}
+
+model MessageRecipient {
+  messageId   String
+  userId      String
+  deliveredAt DateTime?
+  readAt      DateTime?
+
+  message Message @relation(fields: [messageId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@id([messageId, userId])
+}
+
+model EmailCampaign {
+  id           String            @id @default(uuid())
+  subject      String
+  bodyHtml     String
+  audienceMode EmailAudienceMode
+  createdBy    String?
+  createdAt    DateTime          @default(now())
+  sentAt       DateTime?
+
+  recipients EmailCampaignRecipient[]
+}
+
+model EmailCampaignRecipient {
+  campaignId        String
+  userId            String
+  email             String
+  status            EmailRecipientStatus @default(QUEUED)
+  providerMessageId String?
+  error             String?
+  sentAt            DateTime?
+
+  campaign EmailCampaign @relation(fields: [campaignId], references: [id])
+  user     User          @relation(fields: [userId], references: [id])
+
+  @@id([campaignId, userId])
+  @@index([status])
+}
+
+model EmailPreference {
+  userId            String   @id
+  bulkUpdatesOptOut Boolean  @default(false)
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model UnsubscribeToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  actorUserId  String?
+  action       String
+  targetType   String?
+  targetId     String?
+  metadataJson Json?
+  ip           String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  actor User? @relation("AuditActor", fields: [actorUserId], references: [id])
+
+  @@index([actorUserId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+/* ==============================
+   Bank Accounts (Treasury)
+   ============================== */
+model BankAccount {
+  id                String              @id @default(uuid())
+  provider          BankAccountProvider @default(BASIQ)
+  
+  // Basiq identifiers
+  basiqAccountId    String              @unique
+  basiqConnectionId String?
+  
+  // Account details
+  accountName       String
+  accountNumber     String?
+  bsb               String?
+  institution       String?             // e.g., "Macquarie Bank"
+  accountType       String?             // e.g., "Cash Management"
+  
+  // Balances (in cents)
+  currentBalanceCents Int?
+  availableBalanceCents Int?
+  currency          String              @default("AUD")
+  
+  // Sync status
+  lastSyncedAt      DateTime?
+  isActive          Boolean             @default(true)
+  
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  transactions      BankTransaction[]
+  reconciliations   TransactionReconciliation[]
+  
+  @@index([provider, basiqAccountId])
+  @@index([isActive])
+}
+
+/* ==============================
+   Bank Transactions
+   ============================== */
+model BankTransaction {
+  id                String              @id @default(uuid())
+  bankAccountId     String
+  
+  // Basiq identifiers
+  basiqTransactionId String            @unique
+  
+  // Transaction details
+  description       String
+  amountCents       Int                 // Positive for credits, negative for debits
+  transactionType   TransactionType
+  transactionDate   DateTime
+  postDate          DateTime?
+  
+  // Additional metadata
+  category          String?
+  merchant          String?
+  reference         String?
+  balance           Int?                // Balance after transaction (in cents)
+  
+  // Reconciliation
+  isReconciled      Boolean             @default(false)
+  
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  bankAccount       BankAccount         @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  reconciliations   TransactionReconciliation[]
+  
+  @@index([bankAccountId, transactionDate])
+  @@index([isReconciled])
+  @@index([transactionDate])
+}
+
+/* ==============================
+   Transaction Reconciliation
+   ============================== */
+model TransactionReconciliation {
+  id                  String                         @id @default(uuid())
+  
+  bankTransactionId   String
+  bankAccountId       String
+  investorId          String
+  
+  // Reconciliation details
+  status              TransactionReconciliationStatus @default(UNRECONCILED)
+  expectedAmountCents Int                             // From investor instrument/shareholding
+  actualAmountCents   Int                             // From bank transaction
+  varianceCents       Int                             // Difference
+  
+  // Investment reference
+  instrumentId        String?                         // Link to InvestorInstrument if applicable
+  shareholdingId      String?                         // Link to ShareholdingProfile if applicable
+  
+  // Notes and audit
+  notes               String?
+  reconciledBy        String?                         // Admin user who reconciled
+  reconciledAt        DateTime?
+  disputeReason       String?
+  
+  createdAt           DateTime                        @default(now())
+  updatedAt           DateTime                        @updatedAt
+  
+  bankTransaction     BankTransaction                 @relation(fields: [bankTransactionId], references: [id], onDelete: Cascade)
+  bankAccount         BankAccount                     @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  investor            User                            @relation("InvestorReconciliations", fields: [investorId], references: [id], onDelete: Cascade)
+  reconciler          User?                           @relation("ReconciliationActor", fields: [reconciledBy], references: [id])
+  
+  @@index([investorId, status])
+  @@index([status])
+  @@index([bankTransactionId])
+  @@index([reconciledAt])
+}

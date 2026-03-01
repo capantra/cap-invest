@@ -1,0 +1,120 @@
+<% layout("layouts/main") %>
+
+<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+  <div style="min-width:280px;">
+    <h1 style="margin:0;"><%= update.title %></h1>
+    <div class="muted" style="margin-top:6px;">
+      Type: <%= update.type ? update.type.name : "-" %> •
+      Visibility: <%= update.visibility %> •
+      PDF required: <%= update.isPdfDistribution ? "Yes" : "No" %> •
+      Published: <%= update.publishedAt ? new Date(update.publishedAt).toLocaleString() : "Draft" %>
+    </div>
+
+    <% if (update.tags && update.tags.length) { %>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+        <% update.tags.forEach(t => { %>
+          <span class="pill"><%= t.tag.name %></span>
+        <% }) %>
+      </div>
+    <% } %>
+  </div>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <a class="btn btn-secondary" href="/admin/updates">← Updates</a>
+    <% if (!update.publishedAt) { %>
+      <a class="btn btn-secondary" href="/admin/updates/new">New update</a>
+    <% } %>
+  </div>
+</div>
+
+<!-- FULL BODY -->
+<div class="panel" style="margin-top:14px;">
+  <% if (update.bodyHtml) { %>
+    <div style="max-width:100%;">
+      <%- update.bodyHtml %>
+    </div>
+  <% } else { %>
+    <div class="muted">No body content (PDF-only update or not written yet).</div>
+  <% } %>
+</div>
+
+<!-- ATTACHMENTS -->
+<div class="panel" style="margin-top:14px;">
+  <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;">
+    <div>
+      <div style="font-weight:900;">Attachments</div>
+      <div class="muted small" style="margin-top:4px;">Required if “PDF required” is enabled.</div>
+    </div>
+    <span class="pill"><%= (update.attachments || []).length %> files</span>
+  </div>
+
+  <div style="margin-top:12px;">
+    <% if (!update.attachments || update.attachments.length === 0) { %>
+      <div class="muted">None yet.</div>
+    <% } else { %>
+      <ul style="margin:0;padding-left:18px;">
+        <% update.attachments.forEach(a => { %>
+          <li style="margin:8px 0;">
+            <div style="font-weight:800;"><%= a.fileName %></div>
+            <div class="muted small"><%= a.mimeType %> • <%= Math.round(a.sizeBytes / 1024) %> KB</div>
+            <div class="muted small" style="margin-top:4px;">S3 Key: <%= a.storageKey %></div>
+            <a href="/attachments/<%= encodeURIComponent(a.storageKey) %>" target="_blank" class="btn btn-secondary" style="margin-top:6px;font-size:12px;padding:4px 8px;">View/Download</a>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </div>
+
+  <hr style="border:none;border-top:1px solid rgba(0,0,0,0.08);margin:16px 0;" />
+
+  <div style="font-weight:900;">Add attachment</div>
+  <div class="muted small" style="margin-top:6px;">
+    Upload a PDF file to be attached to this update. The file will be uploaded to S3.
+  </div>
+
+  <form method="post" action="/admin/updates/<%= update.id %>/attachments" enctype="multipart/form-data" style="margin-top:12px;max-width:820px;">
+    <label>Upload PDF</label>
+    <input type="file" name="file" accept=".pdf,application/pdf" required />
+
+    <button class="btn btn-secondary" type="submit" style="margin-top:10px;">Upload attachment</button>
+  </form>
+</div>
+
+<!-- PUBLISH -->
+<div class="panel" style="margin-top:14px;">
+  <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;">
+    <div>
+      <div style="font-weight:900;">Publish & distribute</div>
+      <div class="muted small" style="margin-top:6px;">
+        Publishing sets publishedAt and triggers email distribution via SES.
+      </div>
+    </div>
+    <% if (update.publishedAt) { %>
+      <span class="pill pill-ok">Published</span>
+    <% } else { %>
+      <span class="pill pill-warn">Draft</span>
+    <% } %>
+  </div>
+
+  <form method="post" action="/admin/updates/<%= update.id %>/publish" style="margin-top:12px;">
+    <label>Audience</label>
+    <select name="audienceMode" class="input" style="max-width:520px;">
+      <option value="AUTO">Auto (based on visibility)</option>
+      <option value="ALL">All (Investors + Pre-Investors)</option>
+      <option value="INVESTORS">Investors only</option>
+      <option value="PREINVESTORS">Pre-Investors only</option>
+      <option value="SELECTED">Selected emails</option>
+    </select>
+
+    <label>Selected emails (comma or newline separated; only used if SELECTED)</label>
+    <textarea name="selectedEmails" rows="4" class="input" style="max-width:980px;"></textarea>
+
+    <button class="btn btn-primary" type="submit" <%= update.publishedAt ? "disabled" : "" %> style="margin-top:10px;">
+      <%= update.publishedAt ? "Already published" : "Publish + Send" %>
+    </button>
+
+    <div class="muted small" style="margin-top:10px;">
+      Pre-Investors who opted out will not be emailed. Unsubscribe link will be included for Pre-Investors.
+    </div>
+  </form>
+</div>

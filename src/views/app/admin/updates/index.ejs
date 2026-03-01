@@ -1,0 +1,109 @@
+<% layout("layouts/main") %>
+
+<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+  <div>
+    <h1 style="margin:0;">Updates</h1>
+    <div class="muted" style="margin-top:6px;">Admin view: drafts + published, with publish controls and attachments.</div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <a class="btn btn-secondary" href="/admin">← Admin</a>
+    <a class="btn btn-primary" href="/admin/updates/new">Create update</a>
+  </div>
+</div>
+
+<div class="panel" style="margin-top:14px;">
+  <form method="get" action="/admin/updates" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">
+    <div style="min-width:240px;">
+      <label>Search title</label>
+      <input name="q" value="<%= filters.q %>" placeholder="e.g., January update" />
+    </div>
+
+    <div>
+      <label>Visibility</label>
+      <select name="visibility" class="input" style="min-width:240px;">
+        <option value="ALL" <%= filters.visibility==="ALL" ? "selected":"" %>>All</option>
+        <option value="PORTAL_ALL" <%= filters.visibility==="PORTAL_ALL" ? "selected":"" %>>Portal (All)</option>
+        <option value="INVESTOR_ONLY" <%= filters.visibility==="INVESTOR_ONLY" ? "selected":"" %>>Investor only</option>
+      </select>
+    </div>
+
+    <div>
+      <label>Status</label>
+      <select name="status" class="input" style="min-width:200px;">
+        <option value="ALL" <%= filters.status==="ALL" ? "selected":"" %>>All</option>
+        <option value="PUBLISHED" <%= filters.status==="PUBLISHED" ? "selected":"" %>>Published</option>
+        <option value="DRAFT" <%= filters.status==="DRAFT" ? "selected":"" %>>Draft</option>
+      </select>
+    </div>
+
+    <button class="btn btn-secondary" type="submit">Filter</button>
+  </form>
+</div>
+
+<div class="panel" style="margin-top:14px;overflow:auto;">
+  <table style="width:100%;border-collapse:collapse;min-width:980px;">
+    <thead>
+      <tr>
+        <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Title</th>
+        <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Type</th>
+        <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Visibility</th>
+        <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Attachments</th>
+        <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Published</th>
+        <th style="text-align:left;padding:10px;border-bottom:1px solid rgba(0,0,0,0.10);">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (!updates || updates.length === 0) { %>
+        <tr>
+          <td colspan="6" style="padding:12px;" class="muted">No updates found.</td>
+        </tr>
+      <% } %>
+
+      <% updates.forEach(u => { %>
+        <tr>
+          <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.06);">
+            <div style="font-weight:900;"><%= u.title %></div>
+            <div class="muted small" style="margin-top:4px;">
+              Created: <%= new Date(u.createdAt).toLocaleString() %>
+              <% if (u.creator && u.creator.email) { %> • By: <%= u.creator.email %> <% } %>
+              <% if (u.tags && u.tags.length) { %>
+                • Tags:
+                <% u.tags.slice(0,6).forEach(t => { %>
+                  <span class="pill" style="margin-left:6px;"><%= t.tag.name %></span>
+                <% }) %>
+              <% } %>
+            </div>
+          </td>
+          <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.06);" class="muted">
+            <%= u.type ? u.type.name : "-" %>
+          </td>
+          <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.06);" class="muted">
+            <%= u.visibility %>
+            <% if (u.isPdfDistribution) { %>
+              <div class="muted small" style="margin-top:4px;">PDF required</div>
+            <% } %>
+          </td>
+          <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.06);" class="muted">
+            <%= (u.attachments || []).length %>
+          </td>
+          <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.06);" class="muted">
+            <%= u.publishedAt ? new Date(u.publishedAt).toLocaleString() : "Draft" %>
+          </td>
+          <td style="padding:10px;border-bottom:1px solid rgba(0,0,0,0.06);">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <a class="btn btn-secondary" href="/admin/updates/<%= u.id %>">View</a>
+              <% if (!u.publishedAt) { %>
+                <form method="post" action="/admin/updates/<%= u.id %>/publish" style="display:inline;">
+                  <input type="hidden" name="audienceMode" value="AUTO" />
+                  <button class="btn btn-primary" type="submit">Publish + Send</button>
+                </form>
+              <% } else { %>
+                <span class="pill pill-ok">Published</span>
+              <% } %>
+            </div>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>

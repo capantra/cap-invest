@@ -1,0 +1,63 @@
+<% layout("layouts/main") %>
+
+<a class="btn btn-secondary" href="/app/updates/<%= update.id %>">← Back to update</a>
+
+<div style="margin-top:12px;">
+  <h1>Distribute update</h1>
+  <p class="muted">Choose the audience and send via Amazon SES.</p>
+</div>
+
+<div class="panel" style="margin-top:12px;">
+  <div class="strong"><%= update.title %></div>
+  <div class="muted small"><%= update.type ? update.type.name : "Update" %> • <%= new Date(update.publishedAt).toLocaleString() %></div>
+  <% if (update.investorOnly) { %>
+    <div style="margin-top:8px;"><span class="pill pill-warn">Investor only</span></div>
+  <% } %>
+</div>
+
+<div class="panel" style="margin-top:12px;">
+  <form method="post" action="/app/admin/updates/<%= update.id %>/send">
+    <label>Audience</label>
+    <select class="input" name="audience" id="audience">
+      <option value="everyone">Everyone (Investors + Pre-investors not opted out)</option>
+      <option value="investors">Investors only</option>
+      <option value="preinvestors">Pre-investors only (not opted out)</option>
+      <option value="selected">Selected users</option>
+    </select>
+
+    <div id="selectedBox" style="margin-top:12px; display:none;">
+      <label>Select users</label>
+      <div class="panel" style="box-shadow:none; background:rgba(15,23,42,0.02);">
+        <div class="muted small" style="margin-bottom:8px;">Tip: Use search in the browser (Cmd+F) if needed.</div>
+        <div style="max-height:260px; overflow:auto;">
+          <% users.forEach(u => { %>
+            <label class="checkbox" style="margin:6px 0;">
+              <input type="checkbox" name="selectedUserIds" value="<%= u.id %>"/>
+              <div>
+                <div class="strong"><%= u.email %></div>
+                <div class="muted small"><%= u.name || "" %> <%= u.role ? "• " + u.role : "" %></div>
+              </div>
+            </label>
+          <% }) %>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+      <button class="btn btn-primary" type="submit">Send email distribution</button>
+      <span class="muted small">Pre-investors include an unsubscribe link automatically.</span>
+    </div>
+  </form>
+</div>
+
+<script>
+  (function(){
+    const sel = document.getElementById("audience");
+    const box = document.getElementById("selectedBox");
+    function sync(){
+      box.style.display = (sel.value === "selected") ? "block" : "none";
+    }
+    sel.addEventListener("change", sync);
+    sync();
+  })();
+</script>

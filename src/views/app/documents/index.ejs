@@ -1,0 +1,147 @@
+<% layout("layouts/main") %>
+
+<style>
+  /* =========================
+     Data Room (scoped)
+     ========================= */
+  .docPage {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+  }
+
+  @media (max-width: 980px) {
+    .docPage { width: 95%; }
+  }
+
+  .docHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .docHeader h1 { margin: 0; }
+  .docHeader p { margin-top: 6px; }
+
+  .docTableWrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 16px;
+    margin-top: 12px;
+  }
+
+  .docTable {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 920px;
+  }
+
+  .docTable thead th {
+    text-align: left !important;
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    color: rgba(15, 23, 42, 0.65);
+    font-weight: 800;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    white-space: nowrap;
+  }
+
+  .docTable tbody td {
+    text-align: left !important;
+    vertical-align: top;
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+  }
+
+  .docTable tbody tr:hover td {
+    background: rgba(255,255,255,0.55);
+  }
+
+  .docTitle {
+    font-weight: 800;
+    color: #0f172a;
+  }
+
+  .docMeta {
+    margin-top: 4px;
+    color: rgba(15, 23, 42, 0.62);
+    font-size: 12px;
+  }
+
+  .docMono {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  .docActions {
+    text-align: right !important;
+    white-space: nowrap;
+  }
+
+  .docActions .btn { margin-left: 8px; }
+</style>
+
+<div class="docPage">
+  <div class="docHeader">
+    <div>
+      <h1><%= title %></h1>
+      <p class="muted">
+        <%= isPreInvestor ? "Documents shared with pre-investors only." : "All documents shared in published updates." %>
+      </p>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top: 14px;">
+    <% if (!attachments || !attachments.length) { %>
+      <p class="muted">No documents available yet.</p>
+    <% } else { %>
+      <div class="docTableWrap">
+        <table class="docTable">
+          <thead>
+            <tr>
+              <th style="width: 28%;">Document</th>
+              <th style="width: 28%;">Update</th>
+              <th style="width: 12%;">Type</th>
+              <th style="width: 10%;">Visibility</th>
+              <th style="width: 12%;">Published</th>
+              <th style="width: 10%;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% attachments.forEach(a => { %>
+              <tr>
+                <td>
+                  <div class="docTitle"><%= a.fileName %></div>
+                  <div class="docMeta"><%= a.mimeType %> • <%= Math.round((a.sizeBytes || 0) / 1024) %> KB</div>
+                </td>
+                <td>
+                  <div class="docTitle"><%= a.update?.title || "Update" %></div>
+                  <div class="docMeta">
+                    <a href="/updates/<%= a.update?.id %>">View update</a>
+                  </div>
+                </td>
+                <td><%= a.update?.type?.name || "-" %></td>
+                <td>
+                  <% if (a.update?.visibility === "INVESTOR_ONLY") { %>
+                    <span class="pill pill-warn">Investor only</span>
+                  <% } else { %>
+                    <span class="pill">All portal</span>
+                  <% } %>
+                </td>
+                <td class="docMono"><%= a.update?.publishedAt ? new Date(a.update.publishedAt).toLocaleDateString() : "" %></td>
+                <td class="docActions">
+                  <a class="btn btn-secondary btn-sm" href="/attachments/<%= encodeURIComponent(a.storageKey) %>" target="_blank" rel="noreferrer">Open</a>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>
