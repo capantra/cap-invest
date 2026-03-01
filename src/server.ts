@@ -43,6 +43,10 @@ if (process.env.TRUST_PROXY) {
  */
 app.use("/assets", express.static(path.join(process.cwd(), "src", "public-assets")));
 
+app.get("/robots.txt", (_req, res) => {
+  res.sendFile(path.join(process.cwd(), "src", "public-assets", "robots.txt"));
+});
+
 /**
  * Middleware
  */
